@@ -349,27 +349,29 @@ export default function ScanScreen() {
         </ScrollView>
 
         {/* Save button */}
-        <View className="px-5 pb-6 pt-2">
+        <View className="px-5 pb-8 pt-4">
           <TouchableOpacity
             onPress={saveCard}
             disabled={processing}
             activeOpacity={0.85}
-            className="flex-row items-center justify-center rounded-2xl py-4.5"
+            className="flex-row items-center justify-center rounded-2xl"
             style={{
-              gap: 8,
+              gap: 10,
+              paddingVertical: 18,
               backgroundColor: colors.accent,
               shadowColor: colors.accent,
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.35,
+              shadowRadius: 20,
+              elevation: 8,
             }}
           >
             {processing ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
-                <Check size={18} color="#fff" />
-                <Text className="text-[14px] font-semibold text-white">Save Contact</Text>
+                <Check size={22} color="#fff" strokeWidth={2.5} />
+                <Text className="text-[16px] font-bold text-white">Save Contact</Text>
               </>
             )}
           </TouchableOpacity>

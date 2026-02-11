@@ -7,6 +7,9 @@ import {
   GoogleAuthProvider,
   signInWithCredential,
   updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
   User,
 } from 'firebase/auth';
 import { auth } from './firebase';
@@ -23,6 +26,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  updateUserProfile: (displayName: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -82,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         scopes: ['openid', 'profile', 'email'],
         redirectUri,
         responseType: AuthSession.ResponseType.IdToken,
+        usePKCE: false, // Implicit flow doesn't support PKCE
         extraParams: {
           nonce: Math.random().toString(36).substring(2),
         },
