@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Signing keys and service accounts
+*.keystore
+*.jks
+google-play-key.json
+google-services.json
+*-service-account*.json
+
+# EAS
+.eas/
+
+# Orchids
+.orchids/
+
+# Signing keys & service accounts
+*.jks
+*.keystore
+*.p12
+*.key
+google-play-key.json
+*-firebase-adminsdk-*.json
+
+# EAS
+.eas/
+
+# Cursor
+.cursor/

@@ -1,0 +1,21 @@
+{
+  "name": "card-scanner-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npx expo start -c",
+    "frontend:ios": "cd frontend && npx expo start -c --ios",
+    "frontend:android": "cd frontend && npx expo start -c --android",
+    "frontend:web": "cd frontend && npx expo start -c --web",
+    "backend": "cd backend && bun run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "concurrently": "^9.2.1",
+    "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "expo": "^54.0.33"
+  }
+}
