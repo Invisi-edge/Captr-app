@@ -49,3 +49,7 @@ google-play-key.json
 
 # Cursor
 .cursor/
+
+# Build credentials (DO NOT COMMIT)
+credentials.json
+*.jks

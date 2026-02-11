@@ -28,7 +28,6 @@ module.exports = ({ config }) => ({
   },
   android: {
     package: 'com.captr.scanner',
-    versionCode: 1,
     edgeToEdgeEnabled: true,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
