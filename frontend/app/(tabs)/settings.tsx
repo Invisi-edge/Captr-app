@@ -20,6 +20,7 @@ import {
   Crown,
   Zap,
   Receipt,
+  FileText,
 } from 'lucide-react-native';
 import { useTheme } from '@/lib/theme-context';
 import { useState } from 'react';
@@ -548,7 +549,18 @@ export default function SettingsScreen() {
               iconAccent={colors.info}
               title="Privacy Policy"
               subtitle="How we handle your data"
-              onPress={() => Alert.alert('Privacy', 'Your data is encrypted and never sold.')}
+              onPress={() => router.push('/privacy-policy')}
+              colors={colors}
+              isDark={isDark}
+              showBorder
+            />
+            <SettingsRow
+              icon={<FileText size={18} color={colors.warning} />}
+              iconBg={colors.warningSoft}
+              iconAccent={colors.warning}
+              title="Terms of Service"
+              subtitle="Rules and conditions of use"
+              onPress={() => router.push('/terms-of-service')}
               colors={colors}
               isDark={isDark}
               showBorder

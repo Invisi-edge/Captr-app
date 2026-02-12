@@ -5,7 +5,7 @@
  * In production this should point to your deployed backend (e.g. Railway).
  */
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:3002';
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://captr-app-production.up.railway.app';
 
 /**
  * Simple fetch wrapper for API calls
