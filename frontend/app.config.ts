@@ -42,6 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'WRITE_CONTACTS',
       'INTERNET',
       'READ_EXTERNAL_STORAGE',
+      'VIBRATE',
     ],
   },
   web: {
@@ -77,9 +78,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: {
     typedRoutes: true,
   },
+  locales: {
+    en: './locales/en.json',
+  },
   extra: {
     eas: {
       projectId: '6c5caa68-534c-472c-8ded-f853feea19c4',
     },
+    region: 'IN',
+    defaultLocale: 'en-IN',
   },
 });

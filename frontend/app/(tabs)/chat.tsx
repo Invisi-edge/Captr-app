@@ -1,8 +1,10 @@
 import { BACKEND_URL } from '@/lib/api';
 import { auth } from '@/lib/firebase';
-import { Send, Bot, User, Trash2, Sparkles } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import { useRef, useState } from 'react';
+import { useSubscription } from '@/lib/subscription-context';
+import { useTheme } from '@/lib/theme-context';
+import { useRouter } from 'expo-router';
+import { Send, Bot, User, Trash2, Sparkles, Crown, Lock, ChevronRight } from 'lucide-react-native';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,8 +14,78 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Pressable,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { premiumColors, radius, spacing } from '@/lib/premium-theme';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  withDelay,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
+
+/* ── Breathing AI avatar with pulsing scale ── */
+function BreathingAvatar({ color }: { color: string }) {
+  const scale = useSharedValue(0.9);
+
+  React.useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Sparkles size={13} color={color} strokeWidth={2} />
+    </Animated.View>
+  );
+}
+
+/* ── Animated typing dot with sequential pulse ── */
+function AnimatedTypingDot({ delay, color }: { delay: number; color: string }) {
+  const opacity = useSharedValue(0.3);
+
+  React.useEffect(() => {
+    opacity.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 400 }),
+          withTiming(0.3, { duration: 400 })
+        ),
+        -1,
+        false
+      )
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        { width: 7, height: 7, borderRadius: 3.5, backgroundColor: color },
+        animatedStyle,
+      ]}
+    />
+  );
+}
 
 interface Message {
   id: string;
@@ -22,22 +94,10 @@ interface Message {
 }
 
 export default function ChatScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
-  const colors = {
-    bg: isDark ? '#0c0f1a' : '#f5f7fa',
-    cardBg: isDark ? '#161b2e' : '#ffffff',
-    cardBorder: isDark ? '#1e2642' : '#e8ecf4',
-    text: isDark ? '#eef0f6' : '#0f172a',
-    textSub: isDark ? '#7c8db5' : '#64748b',
-    accent: '#6366f1',
-    accentSoft: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
-    userBubble: isDark ? '#6366f1' : '#6366f1',
-    aiBubble: isDark ? '#161b2e' : '#ffffff',
-    aiBorder: isDark ? '#1e2642' : '#e8ecf4',
-    inputBg: isDark ? '#111627' : '#f0f2f7',
-  };
+  const { isDark } = useTheme();
+  const router = useRouter();
+  const { canUseAI, isPro } = useSubscription();
+  const c = premiumColors(isDark);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -51,7 +111,24 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
+  // Send button scale animation
+  const sendScale = useSharedValue(1);
+  const sendAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: sendScale.value }],
+  }));
+
   const sendMessage = async () => {
+    if (!canUseAI()) {
+      Alert.alert(
+        'Pro Feature',
+        'AI Assistant is available on Monthly and Yearly plans. Upgrade to unlock!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'View Plans', onPress: () => router.push('/plans') },
+        ],
+      );
+      return;
+    }
     const text = input.trim();
     if (!text || sending) return;
 
@@ -82,7 +159,7 @@ export default function ChatScreen() {
         ...prev,
         { id: (Date.now() + 1).toString(), role: 'assistant', content: reply },
       ]);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setMessages((prev) => [
         ...prev,
         { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Connection error. Please try again.' },
@@ -106,65 +183,300 @@ export default function ChatScreen() {
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
     return (
-      <View className={`mb-3 px-5 ${isUser ? 'items-end' : 'items-start'}`}>
-        <View className="flex-row items-end" style={{ maxWidth: '85%', gap: 8 }}>
+      <Animated.View
+        entering={isUser ? FadeInUp.duration(300) : FadeInDown.duration(300)}
+        style={{
+          marginBottom: spacing.lg,
+          paddingHorizontal: spacing.xl,
+          alignItems: isUser ? 'flex-end' : 'flex-start',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '85%', gap: 10 }}>
+          {/* AI avatar with breathing animation */}
           {!isUser && (
             <View
-              style={{ backgroundColor: colors.accentSoft }}
-              className="h-7 w-7 items-center justify-center rounded-full"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.md,
+                backgroundColor: c.accentSoft,
+                borderWidth: 1,
+                borderColor: c.glassBorder,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <Sparkles size={12} color={colors.accent} />
+              <BreathingAvatar color={c.accent} />
             </View>
           )}
+
+          {/* Message bubble */}
           <View
             style={{
-              backgroundColor: isUser ? colors.userBubble : colors.aiBubble,
-              borderColor: isUser ? 'transparent' : colors.aiBorder,
+              backgroundColor: isUser ? c.accentDark : c.glassBg,
+              borderColor: isUser ? 'transparent' : c.glassBorder,
               borderWidth: isUser ? 0 : 1,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: isDark ? 0.2 : 0.05,
-              shadowRadius: 4,
-              elevation: 1,
+              borderRadius: radius.xl,
+              borderBottomRightRadius: isUser ? radius.xs : radius.xl,
+              borderBottomLeftRadius: isUser ? radius.xl : radius.xs,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md + 2,
+              ...(isUser ? c.shadow.glow(c.accentDark) : c.shadow.sm),
             }}
-            className={`rounded-2xl px-4 py-3 ${isUser ? 'rounded-br-md' : 'rounded-bl-md'}`}
           >
             <Text
-              style={{ color: isUser ? '#ffffff' : colors.text }}
-              className="text-[13px] leading-5"
+              style={{
+                color: isUser ? '#ffffff' : c.text,
+                fontSize: 13.5,
+                lineHeight: 21,
+                fontWeight: isUser ? '500' : '400',
+              }}
             >
               {item.content}
             </Text>
           </View>
+
+          {/* User avatar */}
           {isUser && (
             <View
-              style={{ backgroundColor: colors.userBubble + '20' }}
-              className="h-7 w-7 items-center justify-center rounded-full"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.md,
+                backgroundColor: `${c.accentDark}25`,
+                borderWidth: 1,
+                borderColor: `${c.accentDark}40`,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <User size={12} color={colors.accent} />
+              <User size={13} color={c.accentLight} strokeWidth={2} />
             </View>
           )}
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-6 py-3">
-        <View className="flex-row items-center" style={{ gap: 10 }}>
+  // ─── Pro Gate: Show upgrade screen for free users ───
+  if (!isPro) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+        {/* Header (same as pro) */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: spacing['2xl'],
+            paddingVertical: spacing.lg,
+            borderBottomWidth: 1,
+            borderBottomColor: c.cardBorderSubtle,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: radius.lg,
+                backgroundColor: c.accentSoft,
+                borderWidth: 1,
+                borderColor: c.glassBorder,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Sparkles size={18} color={c.accent} strokeWidth={2} />
+            </View>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: c.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>
+                  AI Assistant
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: '#f59e0b20',
+                    borderWidth: 1,
+                    borderColor: '#f59e0b40',
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: radius.md,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Crown size={10} color="#f59e0b" />
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#f59e0b', letterSpacing: 0.5 }}>PRO</Text>
+                </View>
+              </View>
+              <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '500', marginTop: 1 }}>
+                Powered by GPT-4o
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Upgrade Gate Content */}
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['3xl'] }}>
+          {/* Lock icon */}
           <View
-            style={{ backgroundColor: colors.accentSoft }}
-            className="h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 24,
+              backgroundColor: c.accentSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: spacing['2xl'],
+              borderWidth: 1,
+              borderColor: c.glassBorder,
+            }}
           >
-            <Sparkles size={16} color={colors.accent} />
+            <Lock size={32} color={c.accent} />
+          </View>
+
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: '800',
+              color: c.text,
+              textAlign: 'center',
+              letterSpacing: -0.5,
+              marginBottom: 8,
+            }}
+          >
+            Unlock AI Assistant
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: c.textSecondary,
+              textAlign: 'center',
+              lineHeight: 21,
+              marginBottom: spacing['2xl'],
+              maxWidth: 280,
+            }}
+          >
+            Get instant answers about your contacts, find people by company or role, and get networking insights.
+          </Text>
+
+          {/* Feature list */}
+          <View style={{ alignSelf: 'stretch', gap: 12, marginBottom: spacing['3xl'] }}>
+            {[
+              'Ask questions about your contacts',
+              'Find people by company, role, or city',
+              'Get networking suggestions',
+              'Summarise contact information',
+            ].map((feature, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 8,
+                    backgroundColor: c.successSoft,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Sparkles size={12} color={c.success} />
+                </View>
+                <Text style={{ fontSize: 13.5, color: c.text, fontWeight: '500', flex: 1 }}>{feature}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Upgrade button */}
+          <TouchableOpacity
+            onPress={() => router.push('/plans')}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: c.accent,
+              borderRadius: radius.xl,
+              paddingVertical: 16,
+              paddingHorizontal: 32,
+              alignSelf: 'stretch',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              ...c.shadow.glow(c.accent),
+            }}
+          >
+            <Crown size={18} color="#fff" />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+
+          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 12, textAlign: 'center' }}>
+            Starting at just ₹299/month
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      {/* Premium header */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: spacing['2xl'],
+          paddingVertical: spacing.lg,
+          borderBottomWidth: 1,
+          borderBottomColor: c.cardBorderSubtle,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.lg,
+              backgroundColor: c.accentSoft,
+              borderWidth: 1,
+              borderColor: c.glassBorder,
+              alignItems: 'center',
+              justifyContent: 'center',
+              ...c.shadow.glow(c.accent),
+            }}
+          >
+            <Sparkles size={18} color={c.accent} strokeWidth={2} />
           </View>
           <View>
-            <Text style={{ color: colors.text }} className="text-[17px] font-bold">
-              AI Assistant
-            </Text>
-            <Text style={{ color: colors.textSub }} className="text-[11px]">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text
+                style={{
+                  color: c.text,
+                  fontSize: 18,
+                  fontWeight: '800',
+                  letterSpacing: -0.3,
+                }}
+              >
+                AI Assistant
+              </Text>
+              <View
+                style={{
+                  backgroundColor: '#10b98120',
+                  borderWidth: 1,
+                  borderColor: '#10b98140',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: radius.md,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Crown size={10} color="#10b981" />
+                <Text style={{ fontSize: 9, fontWeight: '800', color: '#10b981', letterSpacing: 0.5 }}>ACTIVE</Text>
+              </View>
+            </View>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '500', marginTop: 1 }}>
               Powered by GPT-4o
             </Text>
           </View>
@@ -172,20 +484,28 @@ export default function ChatScreen() {
         <TouchableOpacity
           onPress={clearChat}
           activeOpacity={0.7}
-          className="flex-row items-center rounded-xl px-3 py-2.5"
-          style={{ gap: 5, backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderWidth: 1 }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: radius.md,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm + 2,
+            backgroundColor: c.cardBg,
+            borderColor: c.cardBorder,
+            borderWidth: 1,
+            ...c.shadow.sm,
+          }}
         >
-          <Trash2 size={12} color={colors.textSub} />
-          <Text style={{ color: colors.textSub }} className="text-[11px] font-medium">
-            Clear
-          </Text>
+          <Trash2 size={12} color={c.textMuted} strokeWidth={2} />
+          <Text style={{ color: c.textSecondary, fontSize: 11, fontWeight: '600' }}>Clear</Text>
         </TouchableOpacity>
       </View>
 
       {/* Messages */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={{ flex: 1 }}
         keyboardVerticalOffset={90}
       >
         <FlatList
@@ -193,78 +513,118 @@ export default function ChatScreen() {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={{ paddingVertical: 16 }}
+          contentContainerStyle={{ paddingVertical: spacing.xl }}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
         {/* Typing indicator */}
         {sending && (
-          <View className="flex-row items-center px-5 pb-2" style={{ gap: 8 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: spacing.xl,
+              paddingBottom: spacing.md,
+              gap: 10,
+            }}
+          >
             <View
-              style={{ backgroundColor: colors.accentSoft }}
-              className="h-7 w-7 items-center justify-center rounded-full"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.md,
+                backgroundColor: c.accentSoft,
+                borderWidth: 1,
+                borderColor: c.glassBorder,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <Sparkles size={12} color={colors.accent} />
+              <Sparkles size={13} color={c.accent} strokeWidth={2} />
             </View>
             <View
               style={{
-                backgroundColor: colors.aiBubble,
-                borderColor: colors.aiBorder,
+                backgroundColor: c.glassBg,
+                borderColor: c.glassBorder,
                 borderWidth: 1,
+                borderRadius: radius.xl,
+                borderBottomLeftRadius: radius.xs,
+                paddingHorizontal: spacing.lg + 2,
+                paddingVertical: spacing.md + 2,
               }}
-              className="rounded-2xl rounded-bl-md px-4 py-3"
             >
-              <View className="flex-row" style={{ gap: 4 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, opacity: 0.4 }} />
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, opacity: 0.6 }} />
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, opacity: 0.8 }} />
+              <View style={{ flexDirection: 'row', gap: 5 }}>
+                <AnimatedTypingDot delay={0} color={c.accentLight} />
+                <AnimatedTypingDot delay={150} color={c.accentLight} />
+                <AnimatedTypingDot delay={300} color={c.accentLight} />
               </View>
             </View>
           </View>
         )}
 
-        {/* Input */}
+        {/* Premium input area — extra bottom padding for floating tab bar */}
         <View
-          className="flex-row items-end px-5 py-3"
           style={{
-            gap: 8,
-            backgroundColor: colors.bg,
-            borderTopColor: colors.cardBorder,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            paddingHorizontal: spacing.xl,
+            paddingTop: spacing.md,
+            paddingBottom: Platform.OS === 'ios' ? 100 : 88,
+            gap: 10,
+            backgroundColor: c.bgElevated,
             borderTopWidth: 1,
+            borderTopColor: c.cardBorderSubtle,
           }}
         >
           <TextInput
             value={input}
             onChangeText={setInput}
             placeholder="Ask about your contacts..."
-            placeholderTextColor={colors.textSub}
+            placeholderTextColor={c.textMuted}
             style={{
-              backgroundColor: colors.inputBg,
-              color: colors.text,
+              flex: 1,
+              backgroundColor: c.inputBg,
+              borderWidth: 1,
+              borderColor: c.inputBorder,
+              borderRadius: radius.lg,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+              color: c.text,
+              fontSize: 13.5,
+              fontWeight: '500',
               maxHeight: 100,
             }}
-            className="flex-1 rounded-xl px-4 py-3 text-[13px]"
             multiline
             onSubmitEditing={sendMessage}
             returnKeyType="send"
             blurOnSubmit={false}
           />
-          <TouchableOpacity
-            onPress={sendMessage}
-            disabled={!input.trim() || sending}
-            activeOpacity={0.7}
-            style={{
-              backgroundColor: input.trim() && !sending ? colors.accent : colors.inputBg,
-              shadowColor: input.trim() && !sending ? colors.accent : 'transparent',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-            }}
-            className="h-11 w-11 items-center justify-center rounded-xl"
-          >
-            <Send size={16} color={input.trim() && !sending ? '#fff' : colors.textSub} />
-          </TouchableOpacity>
+          <Animated.View style={sendAnimatedStyle}>
+            <Pressable
+              onPress={sendMessage}
+              onPressIn={() => { sendScale.value = withSpring(0.9); }}
+              onPressOut={() => { sendScale.value = withSpring(1); }}
+              disabled={!input.trim() || sending}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: radius.lg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: input.trim() && !sending ? c.accentDark : c.inputBg,
+                borderWidth: input.trim() && !sending ? 0 : 1,
+                borderColor: c.inputBorder,
+                ...(input.trim() && !sending ? c.shadow.glow(c.accentDark) : {}),
+              }}
+            >
+              <Send
+                size={17}
+                color={input.trim() && !sending ? '#fff' : c.textMuted}
+                strokeWidth={2}
+              />
+            </Pressable>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -51,6 +51,16 @@
     li { margin-bottom: 0.4rem; }
     a { color: #6366f1; text-decoration: none; }
     a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4f46e5;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+    }
     .footer {
       text-align: center;
       color: #94a3b8;
@@ -64,59 +74,91 @@
 <body>
   <div class="container">
     <h1>Privacy Policy</h1>
-    <p class="subtitle">Captr - Business Card Scanner &middot; Last updated: February 2026</p>
+    <p class="subtitle">Captr - Business Card Scanner &middot; Last updated: February 2026 &middot; India</p>
+
+    <p>Captr ("we", "our", or "us") is an India-based application. This Privacy Policy is drafted in compliance with the <strong>Information Technology Act, 2000</strong>, the <strong>IT (Reasonable Security Practices and Procedures) Rules, 2011</strong>, and the <strong>Digital Personal Data Protection (DPDP) Act, 2023</strong> of India.</p>
 
     <h2>1. Information We Collect</h2>
-    <p>When you use Captr, we collect the following information:</p>
+    <p>When you use Captr, we collect the following personal data with your consent:</p>
     <ul>
       <li><strong>Account information:</strong> Email address and display name when you create an account.</li>
       <li><strong>Business card images:</strong> Photos you take or select from your gallery for scanning.</li>
-      <li><strong>Extracted contact data:</strong> Names, phone numbers, email addresses, job titles, company names, websites, and addresses extracted from scanned cards.</li>
-      <li><strong>Chat messages:</strong> Messages you send to our AI assistant (not stored permanently).</li>
+      <li><strong>Extracted contact data:</strong> Names, phone numbers, email addresses, job titles/designations, company names, websites, addresses, and other details (such as GST numbers) extracted from scanned cards.</li>
+      <li><strong>Chat messages:</strong> Messages you send to our AI assistant (processed in real-time, not stored permanently).</li>
+      <li><strong>Device information:</strong> Device type and operating system version for app compatibility purposes only.</li>
     </ul>
 
-    <h2>2. How We Use Your Information</h2>
+    <h2>2. Purpose and Lawful Basis for Processing <span class="badge">DPDP Act</span></h2>
+    <p>We process your personal data only for the following specific purposes, based on your explicit consent:</p>
     <ul>
       <li>To scan business cards and extract contact details using AI-powered OCR.</li>
-      <li>To store and organize your scanned contacts for easy retrieval.</li>
+      <li>To store and organise your scanned contacts for easy retrieval.</li>
       <li>To provide AI chat assistance for searching and managing your contacts.</li>
       <li>To enable data export (Excel/CSV) of your contacts.</li>
       <li>To authenticate your account and secure your data.</li>
     </ul>
+    <p>We do <strong>not</strong> process your data for profiling, targeted advertising, or any purpose beyond what is described above.</p>
 
-    <h2>3. Third-Party Services</h2>
-    <p>Captr uses the following third-party services:</p>
+    <h2>3. Third-Party Data Processors</h2>
+    <p>Captr uses the following third-party services as data processors:</p>
     <ul>
-      <li><strong>Firebase (Google):</strong> For user authentication, database storage (Firestore), and file storage. <a href="https://firebase.google.com/support/privacy" target="_blank">Firebase Privacy Policy</a></li>
-      <li><strong>OpenAI:</strong> For business card OCR (text extraction from images) and AI chat functionality. Card images are sent to OpenAI for processing but are not used to train their models. <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a></li>
+      <li><strong>Firebase (Google LLC):</strong> For user authentication, database storage (Firestore), and file storage. Data may be stored on Google servers. <a href="https://firebase.google.com/support/privacy" target="_blank">Firebase Privacy Policy</a></li>
+      <li><strong>OpenAI (OpenAI, Inc.):</strong> For business card OCR (text extraction from images) and AI chat functionality. Card images are sent to OpenAI's API for processing. OpenAI does not use API data to train their models. <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a></li>
     </ul>
+    <p><strong>Cross-border data transfer:</strong> Some of your data may be processed by servers located outside India (Firebase and OpenAI infrastructure). By using Captr, you consent to this transfer in accordance with the DPDP Act, 2023.</p>
 
     <h2>4. Data Storage and Security</h2>
-    <p>Your data is stored securely using Google Firebase infrastructure. We use Firebase Authentication to protect your account and ensure only you can access your data. All data transmission is encrypted via HTTPS.</p>
-
-    <h2>5. Data Retention</h2>
-    <p>Your contact data is retained as long as your account is active. You can delete individual contacts at any time from within the app. To delete your entire account and all associated data, please contact us.</p>
-
-    <h2>6. Your Rights</h2>
-    <p>You have the right to:</p>
+    <p>Your data is stored securely using Google Firebase infrastructure with the following safeguards:</p>
     <ul>
-      <li>Access, export, and download your scanned contact data.</li>
-      <li>Delete individual contacts or request full account deletion.</li>
-      <li>Withdraw consent and stop using the service at any time.</li>
+      <li>All data transmission is encrypted via HTTPS/TLS.</li>
+      <li>Firebase Authentication ensures only you can access your data.</li>
+      <li>User-scoped data isolation — your contacts are private to your account.</li>
+      <li>We implement reasonable security practices as required under the IT (Reasonable Security Practices) Rules, 2011.</li>
+    </ul>
+
+    <h2>5. Data Retention and Deletion</h2>
+    <p>Your contact data is retained only as long as your account is active. You have the right to:</p>
+    <ul>
+      <li>Delete individual contacts at any time from within the app.</li>
+      <li>Request complete account and data deletion by contacting us.</li>
+    </ul>
+    <p>Upon account deletion, all your personal data will be permanently erased from our systems within 30 days.</p>
+
+    <h2>6. Your Rights Under Indian Law <span class="badge">DPDP Act</span></h2>
+    <p>As a Data Principal under the DPDP Act, 2023, you have the following rights:</p>
+    <ul>
+      <li><strong>Right to Access:</strong> You can access and export all your scanned contact data at any time.</li>
+      <li><strong>Right to Correction:</strong> You can edit and correct any extracted contact information.</li>
+      <li><strong>Right to Erasure:</strong> You can delete individual contacts or request full account deletion.</li>
+      <li><strong>Right to Withdraw Consent:</strong> You can withdraw consent and stop using the service at any time. Withdrawal of consent will not affect the lawfulness of processing done prior to withdrawal.</li>
+      <li><strong>Right to Grievance Redressal:</strong> You can raise a grievance with our Grievance Officer (details below).</li>
+      <li><strong>Right to Nominate:</strong> You have the right to nominate another individual to exercise your rights in the event of your death or incapacity.</li>
     </ul>
 
     <h2>7. Children's Privacy</h2>
-    <p>Captr is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
+    <p>Captr is not directed at children under 18 years of age. We do not knowingly collect personal data from anyone under 18. If we become aware that we have collected data from a child, we will delete it immediately.</p>
 
-    <h2>8. Changes to This Policy</h2>
-    <p>We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy within the app.</p>
+    <h2>8. Data Sharing</h2>
+    <p>We do <strong>not</strong> sell, rent, or trade your personal data to any third party. Your data is only shared with the third-party processors listed in Section 3, solely for providing the app's core functionality.</p>
 
-    <h2>9. Contact Us</h2>
+    <h2>9. Changes to This Policy</h2>
+    <p>We may update this privacy policy from time to time. We will notify you of any material changes by posting the updated policy within the app and updating the "Last updated" date above.</p>
+
+    <h2>10. Grievance Officer <span class="badge">IT Act 2000</span></h2>
+    <p>In accordance with the Information Technology Act, 2000 and rules thereunder, the Grievance Officer for Captr is:</p>
+    <p>
+      <strong>Name:</strong> Captr Support Team<br />
+      <strong>Email:</strong> <a href="mailto:grievance@captr.app">grievance@captr.app</a><br />
+      <strong>Response time:</strong> We will acknowledge your grievance within 24 hours and resolve it within 15 days.
+    </p>
+
+    <h2>11. Contact Us</h2>
     <p>If you have questions about this privacy policy or your data, please contact us at:</p>
     <p><a href="mailto:support@captr.app">support@captr.app</a></p>
+    <p><strong>Registered in:</strong> India</p>
 
     <div class="footer">
-      &copy; 2026 Captr. All rights reserved.
+      &copy; 2026 Captr. All rights reserved. &middot; Made in India
     </div>
   </div>
 </body>

@@ -1,105 +1,298 @@
 import { useRouter } from 'expo-router';
-import { ScanLine, ImageIcon, Camera, Zap } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { ScanLine, ImageIcon, Camera, Zap, Shield } from 'lucide-react-native';
+import { useTheme } from '@/lib/theme-context';
+import { useEffect } from 'react';
+import { View, Text, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  withSpring,
+  Easing,
+  FadeInDown,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { premiumColors, radius, spacing } from '@/lib/premium-theme';
 
 export default function ScanTab() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const router = useRouter();
+  const c = premiumColors(isDark);
 
-  const colors = {
-    bg: isDark ? '#0c0f1a' : '#f5f7fa',
-    cardBg: isDark ? '#161b2e' : '#ffffff',
-    cardBorder: isDark ? '#1e2642' : '#e8ecf4',
-    text: isDark ? '#eef0f6' : '#0f172a',
-    textSub: isDark ? '#7c8db5' : '#64748b',
-    accent: '#6366f1',
-    accentSoft: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
-  };
+  // --- Animations ---
+  // Rotating ring
+  const ringRotation = useSharedValue(0);
+  // Pulsing glow opacity
+  const glowOpacity = useSharedValue(0.6);
+  // Breathing icon scale
+  const iconScale = useSharedValue(1);
+  // Button press scales
+  const takePhotoScale = useSharedValue(1);
+  const galleryScale = useSharedValue(1);
+
+  useEffect(() => {
+    // Rotating ring: continuous 360° rotation
+    ringRotation.value = withRepeat(
+      withTiming(360, { duration: 8000, easing: Easing.linear }),
+      -1,
+      false
+    );
+
+    // Pulsing glow
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.6, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+
+    // Breathing icon
+    iconScale.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.95, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ rotateZ: `${ringRotation.value}deg` }],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
+
+  const iconBreathStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
+
+  const takePhotoAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: takePhotoScale.value }],
+  }));
+
+  const galleryAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: galleryScale.value }],
+  }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View className="flex-1 items-center justify-center px-8">
-        {/* Icon with glow effect */}
-        <View className="mb-8 items-center">
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['4xl'] }}>
+
+        {/* Layered scan icon with glow */}
+        <Animated.View
+          entering={FadeInDown.duration(600)}
+          style={{ marginBottom: spacing['4xl'], alignItems: 'center' }}
+        >
+          {/* Rotating dashed ring */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                width: 148,
+                height: 148,
+                borderRadius: radius['3xl'] + 10,
+                borderWidth: 1.5,
+                borderColor: c.accent,
+                borderStyle: 'dashed',
+                alignSelf: 'center',
+                top: -10,
+              },
+              ringStyle,
+            ]}
+          />
+
+          {/* Outer glow ring */}
+          <Animated.View
+            style={[
+              {
+                width: 128,
+                height: 128,
+                borderRadius: radius['3xl'],
+                backgroundColor: c.accentGlow,
+                alignItems: 'center',
+                justifyContent: 'center',
+                ...c.shadow.glow(c.accent),
+              },
+              glowStyle,
+            ]}
+          >
+            {/* Inner icon container */}
+            <Animated.View
+              style={[
+                {
+                  width: 96,
+                  height: 96,
+                  borderRadius: radius['2xl'],
+                  backgroundColor: c.accentSoft,
+                  borderWidth: 1,
+                  borderColor: c.glassBorder,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+                iconBreathStyle,
+              ]}
+            >
+              <ScanLine size={44} color={c.accent} strokeWidth={1.8} />
+            </Animated.View>
+          </Animated.View>
+          {/* Decorative accent dot */}
           <View
             style={{
-              backgroundColor: colors.accentSoft,
-              shadowColor: colors.accent,
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.2,
-              shadowRadius: 24,
+              position: 'absolute',
+              bottom: 4,
+              right: -4,
+              width: 14,
+              height: 14,
+              borderRadius: 7,
+              backgroundColor: c.accentDark,
+              ...c.shadow.glow(c.accentDark),
             }}
-            className="h-24 w-24 items-center justify-center rounded-3xl"
-          >
-            <ScanLine size={40} color={colors.accent} />
-          </View>
-        </View>
+          />
+        </Animated.View>
 
-        <Text
-          style={{ color: colors.text }}
-          className="mb-2 text-center text-[22px] font-bold tracking-tight"
-        >
-          Scan Business Card
-        </Text>
-        <Text
-          style={{ color: colors.textSub }}
-          className="mb-10 text-center text-[13px] leading-5"
-        >
-          Capture the front and back of any card.{'\n'}AI will extract contact details automatically.
-        </Text>
-
-        {/* Take Photo CTA */}
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: '/scanner', params: { mode: 'camera' } })}
-          activeOpacity={0.85}
-          className="mb-3 w-full flex-row items-center justify-center rounded-2xl px-6"
-          style={{
-            gap: 10,
-            paddingVertical: 18,
-            backgroundColor: colors.accent,
-            shadowColor: colors.accent,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.3,
-            shadowRadius: 16,
-            elevation: 8,
-          }}
-        >
-          <Camera size={20} color="#fff" />
-          <Text className="text-[15px] font-semibold text-white">Take Photo</Text>
-        </TouchableOpacity>
-
-        {/* Gallery Option */}
-        <TouchableOpacity
-          onPress={() => router.push({ pathname: '/scanner', params: { mode: 'gallery' } })}
-          activeOpacity={0.7}
-          className="w-full flex-row items-center justify-center rounded-2xl px-6"
-          style={{
-            gap: 10,
-            paddingVertical: 18,
-            backgroundColor: colors.cardBg,
-            borderColor: colors.cardBorder,
-            borderWidth: 1,
-          }}
-        >
-          <ImageIcon size={20} color={colors.text} />
+        {/* Premium heading */}
+        <Animated.View entering={FadeInDown.delay(200).duration(600)}>
           <Text
-            style={{ color: colors.text }}
-            className="text-[15px] font-semibold"
+            style={{
+              color: c.text,
+              fontSize: 26,
+              fontWeight: '800',
+              letterSpacing: -0.6,
+              textAlign: 'center',
+              marginBottom: spacing.sm,
+            }}
           >
-            Choose from Gallery
+            Scan Business Card
           </Text>
-        </TouchableOpacity>
+        </Animated.View>
 
-        {/* Features hint */}
-        <View className="mt-10 flex-row items-center" style={{ gap: 6 }}>
-          <Zap size={12} color={colors.textSub} />
-          <Text style={{ color: colors.textSub }} className="text-[11px]">
-            Supports horizontal and vertical card layouts
+        <Animated.View entering={FadeInDown.delay(350).duration(600)}>
+          <Text
+            style={{
+              color: c.textSecondary,
+              fontSize: 14,
+              lineHeight: 21,
+              textAlign: 'center',
+              marginBottom: spacing['4xl'] + spacing.sm,
+              paddingHorizontal: spacing.lg,
+            }}
+          >
+            Capture the front and back of any card.{'\n'}AI will extract contact details automatically.
           </Text>
-        </View>
+        </Animated.View>
+
+        {/* Take Photo CTA — primary with glow */}
+        <Animated.View entering={FadeInDown.delay(500).duration(600)} style={{ width: '100%' }}>
+          <Pressable
+            onPressIn={() => {
+              takePhotoScale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+            }}
+            onPressOut={() => {
+              takePhotoScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+            }}
+            onPress={() => router.push({ pathname: '/scanner', params: { mode: 'camera' } })}
+          >
+            <Animated.View
+              style={[
+                {
+                  width: '100%',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 12,
+                  paddingVertical: 20,
+                  borderRadius: radius.xl,
+                  backgroundColor: c.accentDark,
+                  ...c.shadow.glow(c.accentDark),
+                },
+                takePhotoAnimStyle,
+              ]}
+            >
+              <Camera size={20} color="#fff" strokeWidth={2} />
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#ffffff', letterSpacing: 0.1 }}>
+                Take Photo
+              </Text>
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
+
+        {/* Gallery Option — card with subtle border */}
+        <Animated.View entering={FadeInDown.delay(650).duration(600)} style={{ width: '100%' }}>
+          <Pressable
+            onPressIn={() => {
+              galleryScale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+            }}
+            onPressOut={() => {
+              galleryScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+            }}
+            onPress={() => router.push({ pathname: '/scanner', params: { mode: 'gallery' } })}
+          >
+            <Animated.View
+              style={[
+                {
+                  width: '100%',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 12,
+                  paddingVertical: 20,
+                  borderRadius: radius.xl,
+                  marginTop: spacing.md,
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBorder,
+                  borderWidth: 1,
+                  ...c.shadow.sm,
+                },
+                galleryAnimStyle,
+              ]}
+            >
+              <ImageIcon size={20} color={c.text} strokeWidth={1.8} />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: c.text }}>
+                Choose from Gallery
+              </Text>
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
+
+        {/* Premium feature hints */}
+        <Animated.View
+          entering={FadeInDown.delay(800).duration(600)}
+          style={{
+            marginTop: spacing['4xl'] + spacing.lg,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 20,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Zap size={12} color={c.textMuted} strokeWidth={2} />
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '500' }}>
+              AI-powered OCR
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 3,
+              height: 3,
+              borderRadius: 1.5,
+              backgroundColor: c.textMuted,
+              opacity: 0.4,
+            }}
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Shield size={12} color={c.textMuted} strokeWidth={2} />
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '500' }}>
+              All layouts supported
+            </Text>
+          </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );

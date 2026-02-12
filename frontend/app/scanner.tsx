@@ -1,11 +1,13 @@
 import { BACKEND_URL } from '@/lib/api';
 import { auth } from '@/lib/firebase';
-import { useContacts } from '@/lib/contacts-context';
+import { useContacts, Card } from '@/lib/contacts-context';
+import { premiumColors, radius, spacing } from '@/lib/premium-theme';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X, RotateCcw, Check, Camera, ImageIcon, Sparkles } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
+import { useTheme } from '@/lib/theme-context';
+import { useSubscription } from '@/lib/subscription-context';
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -18,28 +20,31 @@ import {
   TextInput,
   Platform,
   StyleSheet,
+  Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  withSpring,
+  Easing,
+  FadeIn,
+  FadeInDown,
+} from 'react-native-reanimated';
 
 type ScanStep = 'capture-front' | 'capture-back' | 'processing' | 'review';
 
 export default function ScanScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
-  const { addCard } = useContacts();
+  const { addCard, findDuplicate } = useContacts();
+  const { canScan, recordScan, scansUsed, scansLimit, isPro } = useSubscription();
 
-  const colors = {
-    bg: isDark ? '#0c0f1a' : '#f5f7fa',
-    cardBg: isDark ? '#161b2e' : '#ffffff',
-    cardBorder: isDark ? '#1e2642' : '#e8ecf4',
-    text: isDark ? '#eef0f6' : '#0f172a',
-    textSub: isDark ? '#7c8db5' : '#64748b',
-    accent: '#6366f1',
-    accentSoft: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
-    inputBg: isDark ? '#111627' : '#f0f2f7',
-  };
+  const colors = premiumColors(isDark);
 
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -49,9 +54,77 @@ export default function ScanScreen() {
   const [step, setStep] = useState<ScanStep>('capture-front');
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<any>(null);
+  const [extractedData, setExtractedData] = useState<Partial<Card> | null>(null);
   const [processing, setProcessing] = useState(false);
   const [facing, setFacing] = useState<'back' | 'front'>('back');
+
+  // --- Animation shared values ---
+  // Scan line Y position
+  const scanLinePos = useSharedValue(10);
+  // Card frame pulse opacity
+  const framePulse = useSharedValue(1);
+  // Processing spinner rotation
+  const spinValue = useSharedValue(0);
+  // Save button glow pulse
+  const savePulse = useSharedValue(0);
+
+  // Start scan line + frame pulse animations on mount
+  useEffect(() => {
+    scanLinePos.value = withRepeat(
+      withSequence(
+        withTiming(10, { duration: 2000 }),
+        withTiming(160, { duration: 2000 })
+      ),
+      -1,
+      true
+    );
+    framePulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1500 }),
+        withTiming(0.4, { duration: 1500 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  // Step-dependent animations
+  useEffect(() => {
+    if (step === 'processing') {
+      spinValue.value = 0;
+      spinValue.value = withRepeat(
+        withTiming(360, { duration: 3000, easing: Easing.linear }),
+        -1
+      );
+    }
+    if (step === 'review') {
+      savePulse.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500 }),
+          withTiming(0, { duration: 1500 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [step]);
+
+  const scanLineAnimStyle = useAnimatedStyle(() => ({
+    top: scanLinePos.value,
+  }));
+
+  const framePulseStyle = useAnimatedStyle(() => ({
+    opacity: framePulse.value,
+  }));
+
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotateZ: `${spinValue.value}deg` }],
+  }));
+
+  const savePulseStyle = useAnimatedStyle(() => ({
+    shadowOpacity: 0.3 + savePulse.value * 0.5,
+    shadowRadius: 12 + savePulse.value * 10,
+  }));
 
   useEffect(() => {
     if (params.mode === 'gallery') {
@@ -130,6 +203,13 @@ export default function ScanScreen() {
         ? backImage.split('base64,')[1]
         : back || '';
 
+      const allowed = await recordScan();
+      if (!allowed) {
+        setProcessing(false);
+        setStep('capture-front');
+        return;
+      }
+
       const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`${BACKEND_URL}/api/scan`, {
         method: 'POST',
@@ -147,12 +227,15 @@ export default function ScanScreen() {
       if (json.success) {
         setExtractedData(json.data);
         setStep('review');
+        // Haptic feedback: scan completed successfully
+        Vibration.vibrate([0, 80, 60, 80]);
       } else {
         Alert.alert('Error', json.error || 'Failed to process card');
         setStep('capture-front');
       }
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to process card');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Failed to process card';
+      Alert.alert('Error', message);
       setStep('capture-front');
     } finally {
       setProcessing(false);
@@ -166,7 +249,7 @@ export default function ScanScreen() {
     processImages(frontBase64, undefined);
   };
 
-  const saveCard = async () => {
+  const doSaveCard = async () => {
     if (!extractedData) return;
     setProcessing(true);
 
@@ -178,15 +261,47 @@ export default function ScanScreen() {
       });
 
       if (card) {
+        // Haptic feedback: card saved successfully
+        Vibration.vibrate(100);
         router.replace(`/card/${card.id}`);
       } else {
         Alert.alert('Error', 'Failed to save card');
       }
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'An error occurred';
+      Alert.alert('Error', message);
     } finally {
       setProcessing(false);
     }
+  };
+
+  const saveCard = () => {
+    if (!extractedData) return;
+
+    // Check for duplicate contacts before saving
+    const duplicate = findDuplicate(extractedData);
+    if (duplicate) {
+      const dupLabel = duplicate.name || duplicate.email || duplicate.phone || 'Unknown';
+      Alert.alert(
+        'Duplicate Contact',
+        `A contact matching "${dupLabel}" already exists. Do you still want to save?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'View Existing',
+            onPress: () => router.push(`/card/${duplicate.id}`),
+          },
+          {
+            text: 'Save Anyway',
+            style: 'destructive',
+            onPress: () => doSaveCard(),
+          },
+        ],
+      );
+      return;
+    }
+
+    doSaveCard();
   };
 
   const resetScan = () => {
@@ -200,9 +315,21 @@ export default function ScanScreen() {
   if (!permission) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={{ color: colors.textSub }} className="mt-4 text-[13px]">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: radius['2xl'],
+              backgroundColor: colors.accentSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: spacing.xl,
+            }}
+          >
+            <ActivityIndicator size="small" color={colors.accent} />
+          </View>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '500' }}>
             Checking camera access...
           </Text>
         </View>
@@ -213,29 +340,74 @@ export default function ScanScreen() {
   if (!permission.granted && params.mode !== 'gallery') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['4xl'] }}>
+          {/* Glow orb behind icon */}
           <View
-            style={{ backgroundColor: colors.accentSoft }}
-            className="h-16 w-16 items-center justify-center rounded-2xl mb-4"
+            style={{
+              position: 'absolute',
+              width: 160,
+              height: 160,
+              borderRadius: 80,
+              backgroundColor: colors.accentGlow,
+              opacity: 0.3,
+            }}
+          />
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: radius['2xl'],
+              backgroundColor: colors.accentSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: spacing['2xl'],
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(129, 140, 248, 0.2)' : 'rgba(99, 102, 241, 0.12)',
+              ...colors.shadow.glow(colors.accent),
+            }}
           >
-            <Camera size={28} color={colors.accent} />
+            <Camera size={30} color={colors.accent} />
           </View>
-          <Text style={{ color: colors.text }} className="mb-2 text-center text-[16px] font-bold">
+          <Text
+            style={{
+              color: colors.text,
+              fontSize: 18,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginBottom: spacing.sm,
+              letterSpacing: -0.3,
+            }}
+          >
             Camera Permission Required
           </Text>
-          <Text style={{ color: colors.textSub }} className="mb-6 text-center text-[13px]">
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 14,
+              textAlign: 'center',
+              marginBottom: spacing['3xl'],
+              lineHeight: 20,
+            }}
+          >
             We need camera access to scan business cards
           </Text>
           <TouchableOpacity
             onPress={requestPermission}
             activeOpacity={0.85}
-            style={{ backgroundColor: colors.accent }}
-            className="rounded-xl px-8 py-3.5"
+            style={{
+              backgroundColor: colors.accentDark,
+              borderRadius: radius.lg,
+              paddingHorizontal: spacing['4xl'],
+              paddingVertical: 15,
+              ...colors.shadow.glow(colors.accent),
+            }}
           >
-            <Text className="text-[13px] font-semibold text-white">Grant Permission</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#ffffff' }}>
+              Grant Permission
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} className="mt-4">
-            <Text style={{ color: colors.textSub }} className="text-[13px]">Cancel</Text>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: spacing.xl }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '500' }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -246,18 +418,53 @@ export default function ScanScreen() {
   if (step === 'processing') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-        <View className="flex-1 items-center justify-center">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          {/* Ambient glow */}
           <View
-            style={{ backgroundColor: colors.accentSoft }}
-            className="h-20 w-20 items-center justify-center rounded-3xl mb-5"
+            style={{
+              position: 'absolute',
+              width: 220,
+              height: 220,
+              borderRadius: 110,
+              backgroundColor: colors.accentGlow,
+              opacity: 0.25,
+            }}
+          />
+          <Animated.View
+            style={[spinStyle, {
+              width: 80,
+              height: 80,
+              borderRadius: radius['3xl'],
+              backgroundColor: colors.accentSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: spacing['2xl'],
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(129, 140, 248, 0.25)' : 'rgba(99, 102, 241, 0.15)',
+              ...colors.shadow.glow(colors.accent),
+            }]}
           >
-            <Sparkles size={32} color={colors.accent} />
-          </View>
-          <ActivityIndicator size="small" color={colors.accent} className="mb-4" />
-          <Text style={{ color: colors.text }} className="text-[16px] font-bold">
+            <Sparkles size={34} color={colors.accent} />
+          </Animated.View>
+          <ActivityIndicator size="small" color={colors.accent} style={{ marginBottom: spacing.lg }} />
+          <Text
+            style={{
+              color: colors.text,
+              fontSize: 18,
+              fontWeight: '800',
+              letterSpacing: -0.3,
+            }}
+          >
             Processing Card
           </Text>
-          <Text style={{ color: colors.textSub }} className="mt-1.5 text-[12px]">
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 13,
+              marginTop: spacing.sm,
+              fontWeight: '500',
+            }}
+          >
             AI is extracting contact details...
           </Text>
         </View>
@@ -269,157 +476,284 @@ export default function ScanScreen() {
   if (step === 'review' && extractedData) {
     const fields = [
       { key: 'name', label: 'Name' },
-      { key: 'job_title', label: 'Job Title' },
-      { key: 'company', label: 'Company' },
+      { key: 'job_title', label: 'Designation / Title' },
+      { key: 'company', label: 'Company / Organisation' },
       { key: 'email', label: 'Email' },
-      { key: 'phone', label: 'Phone' },
+      { key: 'phone', label: 'Phone (+91)' },
       { key: 'website', label: 'Website' },
       { key: 'address', label: 'Address' },
-      { key: 'notes', label: 'Notes' },
+      { key: 'notes', label: 'Notes (GST, PAN, etc.)' },
     ];
 
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-3">
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: spacing['2xl'],
+            paddingVertical: spacing.lg,
+          }}
+        >
           <TouchableOpacity
             onPress={resetScan}
             activeOpacity={0.7}
-            className="rounded-xl p-2.5"
-            style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderWidth: 1 }}
+            style={{
+              borderRadius: radius.lg,
+              padding: spacing.md,
+              backgroundColor: colors.cardBg,
+              borderColor: colors.cardBorder,
+              borderWidth: 1,
+              ...colors.shadow.sm,
+            }}
           >
             <RotateCcw size={16} color={colors.text} />
           </TouchableOpacity>
-          <Text style={{ color: colors.text }} className="text-[15px] font-bold">
+          <Text
+            style={{
+              color: colors.text,
+              fontSize: 16,
+              fontWeight: '800',
+              letterSpacing: -0.3,
+            }}
+          >
             Review Details
           </Text>
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={0.7}
-            className="rounded-xl p-2.5"
-            style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderWidth: 1 }}
+            style={{
+              borderRadius: radius.lg,
+              padding: spacing.md,
+              backgroundColor: colors.cardBg,
+              borderColor: colors.cardBorder,
+              borderWidth: 1,
+              ...colors.shadow.sm,
+            }}
           >
             <X size={16} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5">
+        <ScrollView style={{ flex: 1, paddingHorizontal: spacing['2xl'] }}>
           {/* Card preview */}
           {frontImage && (
-            <View className="mb-5 flex-row" style={{ gap: 8 }}>
-              <Image
-                source={{ uri: frontImage }}
-                className="h-24 flex-1 rounded-2xl"
-                resizeMode="cover"
-              />
-              {backImage && (
+            <View
+              style={{
+                marginBottom: spacing['2xl'],
+                flexDirection: 'row',
+                gap: spacing.md,
+              }}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  borderRadius: radius.xl,
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: colors.cardBorder,
+                  ...colors.shadow.sm,
+                }}
+              >
                 <Image
-                  source={{ uri: backImage }}
-                  className="h-24 flex-1 rounded-2xl"
+                  source={{ uri: frontImage }}
+                  style={{ height: 100 }}
                   resizeMode="cover"
                 />
+              </View>
+              {backImage && (
+                <View
+                  style={{
+                    flex: 1,
+                    borderRadius: radius.xl,
+                    overflow: 'hidden',
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    ...colors.shadow.sm,
+                  }}
+                >
+                  <Image
+                    source={{ uri: backImage }}
+                    style={{ height: 100 }}
+                    resizeMode="cover"
+                  />
+                </View>
               )}
             </View>
           )}
 
           {/* Editable fields */}
-          {fields.map(({ key, label }) => (
-            <View key={key} className="mb-3">
+          {fields.map(({ key, label }, index) => (
+            <Animated.View key={key} entering={FadeInDown.delay(index * 60)} style={{ marginBottom: spacing.lg }}>
               <Text
-                style={{ color: colors.textSub }}
-                className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest"
+                style={{
+                  color: colors.textMuted,
+                  fontSize: 10,
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  letterSpacing: 1.5,
+                  marginBottom: spacing.sm,
+                }}
               >
                 {label}
               </Text>
               <TextInput
                 value={extractedData[key] || ''}
                 onChangeText={(text) =>
-                  setExtractedData((prev: any) => ({ ...prev, [key]: text }))
+                  setExtractedData((prev: Partial<Card> | null) => ({ ...(prev || {}), [key]: text }))
                 }
                 style={{
                   backgroundColor: colors.inputBg,
                   color: colors.text,
+                  borderRadius: radius.lg,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: 14,
+                  fontSize: 14,
+                  fontWeight: '500',
+                  borderWidth: 1,
+                  borderColor: colors.inputBorder,
                 }}
-                className="rounded-xl px-4 py-3.5 text-[13px]"
                 placeholder={`Enter ${label.toLowerCase()}`}
-                placeholderTextColor={colors.textSub}
+                placeholderTextColor={colors.textMuted}
               />
-            </View>
+            </Animated.View>
           ))}
         </ScrollView>
 
         {/* Save button */}
-        <View className="px-5 pb-8 pt-4">
-          <TouchableOpacity
-            onPress={saveCard}
-            disabled={processing}
-            activeOpacity={0.85}
-            className="flex-row items-center justify-center rounded-2xl"
-            style={{
-              gap: 10,
-              paddingVertical: 18,
-              backgroundColor: colors.accent,
-              shadowColor: colors.accent,
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.35,
-              shadowRadius: 20,
-              elevation: 8,
-            }}
-          >
-            {processing ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <>
-                <Check size={22} color="#fff" strokeWidth={2.5} />
-                <Text className="text-[16px] font-bold text-white">Save Contact</Text>
-              </>
-            )}
-          </TouchableOpacity>
+        <View style={{ paddingHorizontal: spacing['2xl'], paddingBottom: spacing['4xl'], paddingTop: spacing.lg }}>
+          <Animated.View style={[savePulseStyle, { shadowColor: colors.accent, shadowOffset: { width: 0, height: 0 } }]}>
+            <TouchableOpacity
+              onPress={saveCard}
+              disabled={processing}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.md,
+                paddingVertical: 18,
+                backgroundColor: colors.accentDark,
+                borderRadius: radius.xl,
+                ...colors.shadow.glow(colors.accent),
+              }}
+            >
+              {processing ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Check size={22} color="#fff" strokeWidth={2.5} />
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#ffffff', letterSpacing: -0.3 }}>
+                    Save Contact
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </SafeAreaView>
     );
   }
 
   // Camera capture screen
+  const cameraBg = isDark ? '#06080f' : '#0a0d18';
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0a0d18' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: cameraBg }}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3">
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: spacing['2xl'],
+          paddingVertical: spacing.lg,
+        }}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
-          className="rounded-xl p-2.5"
-          style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+          style={{
+            borderRadius: radius.lg,
+            padding: spacing.md,
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.1)',
+          }}
         >
           <X size={16} color="#fff" />
         </TouchableOpacity>
-        <View className="flex-row items-center" style={{ gap: 6 }}>
-          <View
-            style={{ backgroundColor: step === 'capture-front' ? colors.accent : '#22c55e' }}
-            className="h-1.5 w-8 rounded-full"
-          />
+
+        {/* Step indicators */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View
             style={{
-              backgroundColor:
-                step === 'capture-back' ? colors.accent : step === 'capture-front' ? '#334155' : '#22c55e',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
             }}
-            className="h-1.5 w-8 rounded-full"
-          />
+          >
+            <View
+              style={{
+                height: 6,
+                width: 32,
+                borderRadius: 3,
+                backgroundColor: step === 'capture-front' ? colors.accent : colors.success,
+                ...(step === 'capture-front' ? colors.shadow.glow(colors.accent) : {}),
+              }}
+            />
+            <View
+              style={{
+                height: 6,
+                width: 32,
+                borderRadius: 3,
+                backgroundColor:
+                  step === 'capture-back'
+                    ? colors.accent
+                    : step === 'capture-front'
+                      ? 'rgba(255,255,255,0.12)'
+                      : colors.success,
+                ...(step === 'capture-back' ? colors.shadow.glow(colors.accent) : {}),
+              }}
+            />
+          </View>
         </View>
+
         <TouchableOpacity
           onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
-          className="rounded-xl p-2.5"
-          style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+          style={{
+            borderRadius: radius.lg,
+            padding: spacing.md,
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.1)',
+          }}
         >
           <RotateCcw size={16} color="#fff" />
         </TouchableOpacity>
       </View>
 
       {/* Step label */}
-      <View className="items-center py-3">
-        <Text className="text-[15px] font-bold text-white">
+      <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
+        <Text
+          style={{
+            fontSize: 17,
+            fontWeight: '800',
+            color: '#ffffff',
+            letterSpacing: -0.3,
+          }}
+        >
           {step === 'capture-front' ? 'Scan Front Side' : 'Scan Back Side'}
         </Text>
-        <Text className="mt-1 text-[12px] text-white/50">
+        <Text
+          style={{
+            marginTop: spacing.xs,
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.45)',
+            fontWeight: '500',
+          }}
+        >
           {step === 'capture-front'
             ? 'Position the card within the frame'
             : 'Flip the card and scan the back'}
@@ -427,18 +761,52 @@ export default function ScanScreen() {
       </View>
 
       {/* Camera / Preview */}
-      <View className="flex-1 mx-5 mb-4 overflow-hidden rounded-3xl">
+      <View
+        style={{
+          flex: 1,
+          marginHorizontal: spacing['2xl'],
+          marginBottom: spacing.lg,
+          overflow: 'hidden',
+          borderRadius: radius['3xl'],
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.08)',
+        }}
+      >
         {(step === 'capture-front' && !frontImage) || (step === 'capture-back' && !backImage) ? (
           Platform.OS === 'web' ? (
-            <View className="flex-1 items-center justify-center" style={{ backgroundColor: '#111627' }}>
-              <Camera size={40} color="#4a5578" />
-              <Text className="mt-4 text-[13px] text-white/40">Camera not available on web</Text>
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isDark ? '#0c1022' : '#111627',
+              }}
+            >
+              <Camera size={40} color="rgba(255,255,255,0.2)" />
+              <Text
+                style={{
+                  marginTop: spacing.lg,
+                  fontSize: 13,
+                  color: 'rgba(255,255,255,0.35)',
+                  fontWeight: '500',
+                }}
+              >
+                Camera not available on web
+              </Text>
               <TouchableOpacity
                 onPress={() => pickFromGallery(step === 'capture-front' ? 'front' : 'back')}
-                style={{ backgroundColor: colors.accent }}
-                className="mt-4 rounded-xl px-6 py-3"
+                style={{
+                  backgroundColor: colors.accentDark,
+                  borderRadius: radius.lg,
+                  paddingHorizontal: spacing['2xl'],
+                  paddingVertical: spacing.md,
+                  marginTop: spacing.lg,
+                  ...colors.shadow.glow(colors.accent),
+                }}
               >
-                <Text className="text-[13px] font-semibold text-white">Select from Gallery</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#ffffff' }}>
+                  Select from Gallery
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -450,16 +818,38 @@ export default function ScanScreen() {
               />
               {/* Card frame overlay */}
               <View style={[StyleSheet.absoluteFill, styles.overlayContainer]}>
-                <View
-                  style={{
+                <Animated.View
+                  style={[framePulseStyle, {
                     width: '88%',
                     aspectRatio: 1.75,
                     borderWidth: 2,
                     borderColor: colors.accent,
-                    borderRadius: 16,
+                    borderRadius: radius.xl,
                     borderStyle: 'dashed',
-                  }}
-                />
+                    overflow: 'hidden',
+                    // Corner glow effect
+                    shadowColor: colors.accent,
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 16,
+                  }]}
+                >
+                  {/* Animated scan line */}
+                  <Animated.View
+                    style={[scanLineAnimStyle, {
+                      position: 'absolute',
+                      left: 12,
+                      right: 12,
+                      height: 2,
+                      backgroundColor: colors.accent,
+                      borderRadius: 1,
+                      shadowColor: colors.accent,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.8,
+                      shadowRadius: 10,
+                    }]}
+                  />
+                </Animated.View>
               </View>
             </View>
           )
@@ -473,41 +863,88 @@ export default function ScanScreen() {
       </View>
 
       {/* Bottom actions */}
-      <View className="flex-row items-center justify-center pb-8" style={{ gap: 20 }}>
-        {/* Gallery pick */}
-        <TouchableOpacity
-          onPress={() => pickFromGallery(step === 'capture-front' ? 'front' : 'back')}
-          className="h-11 w-11 items-center justify-center rounded-full"
-          style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+      <View
+        style={{
+          alignItems: 'center',
+          paddingBottom: spacing['4xl'],
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing['2xl'],
+          }}
         >
-          <ImageIcon size={18} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Capture button */}
-        {Platform.OS !== 'web' && (
+          {/* Gallery pick */}
           <TouchableOpacity
-            onPress={takePicture}
-            className="h-16 w-16 items-center justify-center rounded-full"
-            style={{ borderWidth: 3, borderColor: colors.accent }}
+            onPress={() => pickFromGallery(step === 'capture-front' ? 'front' : 'back')}
+            style={{
+              height: 46,
+              width: 46,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: radius.full,
+              backgroundColor: 'rgba(255,255,255,0.08)',
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.12)',
+            }}
           >
-            <View
-              style={{ backgroundColor: '#ffffff' }}
-              className="h-12 w-12 rounded-full"
-            />
+            <ImageIcon size={18} color="#fff" />
           </TouchableOpacity>
-        )}
 
-        {/* Skip back */}
-        {step === 'capture-back' ? (
-          <TouchableOpacity
-            onPress={skipBack}
-            className="h-11 items-center justify-center rounded-full px-5"
-            style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-          >
-            <Text className="text-[12px] font-semibold text-white">Skip</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 44 }} />
+          {/* Capture button */}
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity
+              onPress={takePicture}
+              style={{
+                height: 68,
+                width: 68,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 34,
+                borderWidth: 3,
+                borderColor: colors.accent,
+                ...colors.shadow.glow(colors.accent),
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: '#ffffff',
+                  width: 52,
+                  height: 52,
+                  borderRadius: 26,
+                }}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Skip back */}
+          {step === 'capture-back' ? (
+            <TouchableOpacity
+              onPress={skipBack}
+              style={{
+                height: 46,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: radius.full,
+                paddingHorizontal: spacing.xl,
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.12)',
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#ffffff' }}>Skip</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 46 }} />
+          )}
+        </View>
+        {!isPro && scansLimit !== -1 && (
+          <Text style={{ color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+            {scansUsed}/{scansLimit} free scans used
+          </Text>
         )}
       </View>
     </SafeAreaView>

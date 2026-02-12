@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/auth-context';
 import { useContacts } from '@/lib/contacts-context';
+import { premiumColors, radius, spacing } from '@/lib/premium-theme';
 import { useRouter } from 'expo-router';
 import {
   ScanLine,
@@ -15,113 +16,163 @@ import {
   Clock,
   Zap,
 } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import { useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useTheme } from '@/lib/theme-context';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 
 export default function HomeScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const router = useRouter();
   const { cards, fetchCards } = useContacts();
   const { user, signOut } = useAuth();
+  const c = premiumColors(isDark);
 
   useEffect(() => {
     if (user) fetchCards();
   }, [user]);
 
-  const colors = {
-    bg: isDark ? '#0c0f1a' : '#f5f7fa',
-    cardBg: isDark ? '#161b2e' : '#ffffff',
-    cardBorder: isDark ? '#1e2642' : '#e8ecf4',
-    text: isDark ? '#eef0f6' : '#0f172a',
-    textSub: isDark ? '#7c8db5' : '#64748b',
-    accent: '#6366f1',
-    accentSoft: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
-    accentGlow: isDark ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.15)',
-    gradient1: '#6366f1',
-    gradient2: '#8b5cf6',
-  };
+  // Refresh greeting every minute so it updates across time boundaries
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const greeting = useMemo(() => {
-    const hour = new Date().getHours();
+    const hour = now.getHours();
+    if (hour < 5) return 'Good night';
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
+    if (hour < 21) return 'Good evening';
+    return 'Good night';
+  }, [now]);
 
   const firstName = user?.displayName?.split(' ')[0] || 'there';
 
   const stats = [
     {
-      label: 'Total',
+      label: 'Total Contacts',
       value: cards.length,
       icon: Users,
-      color: '#6366f1',
-      bgColor: '#6366f115',
+      color: c.accent,
+      tintBg: c.accentSoft,
     },
     {
-      label: 'Emails',
-      value: cards.filter((c) => c.email).length,
+      label: 'With Email',
+      value: cards.filter((card) => card.email).length,
       icon: Mail,
-      color: '#06b6d4',
-      bgColor: '#06b6d415',
+      color: c.info,
+      tintBg: c.infoSoft,
     },
     {
-      label: 'Phones',
-      value: cards.filter((c) => c.phone).length,
+      label: 'With Phone',
+      value: cards.filter((card) => card.phone).length,
       icon: Phone,
-      color: '#10b981',
-      bgColor: '#10b98115',
+      color: c.success,
+      tintBg: c.successSoft,
     },
     {
       label: 'Companies',
-      value: new Set(cards.map(c => c.company).filter(Boolean)).size,
+      value: new Set(cards.map((card) => card.company).filter(Boolean)).size,
       icon: Building2,
-      color: '#f59e0b',
-      bgColor: '#f59e0b15',
+      color: c.warning,
+      tintBg: c.warningSoft,
     },
   ];
 
   const recentCard = cards[0];
   const hasCards = cards.length > 0;
 
+  // Hero button scale-on-press animation
+  const heroScale = useSharedValue(1);
+  const heroAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heroScale.value }],
+  }));
+
+  // Floating decorative circles
+  const float1 = useSharedValue(0);
+  const float2 = useSharedValue(0);
+  const float3 = useSharedValue(0);
+
+  useEffect(() => {
+    float1.value = withRepeat(
+      withTiming(10, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+    float2.value = withRepeat(
+      withTiming(-8, { duration: 3500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+    float3.value = withRepeat(
+      withTiming(6, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
+
+  const floatStyle1 = useAnimatedStyle(() => ({
+    transform: [{ translateY: float1.value }],
+  }));
+  const floatStyle2 = useAnimatedStyle(() => ({
+    transform: [{ translateY: float2.value }],
+  }));
+  const floatStyle3 = useAnimatedStyle(() => ({
+    transform: [{ translateX: float3.value }],
+  }));
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 32 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="px-6 pt-5 pb-2">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center" style={{ gap: 10 }}>
+        {/* ─── Header ─── */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={styles.brandRow}>
+              {/* Logo mark */}
               <View
-                style={{
-                  backgroundColor: colors.accent,
-                  shadowColor: colors.accent,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                }}
-                className="h-10 w-10 items-center justify-center rounded-xl"
+                style={[
+                  styles.logoMark,
+                  {
+                    backgroundColor: c.accent,
+                    ...c.shadow.glow(c.accent),
+                  },
+                ]}
               >
-                <Sparkles size={18} color="#fff" />
+                <Sparkles size={20} color="#fff" />
               </View>
               <View>
                 <Text
-                  style={{ color: colors.accent }}
-                  className="text-[10px] font-bold tracking-widest uppercase"
+                  style={[
+                    styles.brandName,
+                    { color: c.accent },
+                  ]}
                 >
-                  Captr
+                  CAPTR
                 </Text>
-                <Text style={{ color: colors.textSub }} className="text-[10px]">
-                  AI Card Scanner
+                <Text style={[styles.brandTagline, { color: c.textMuted }]}>
+                  Business Card Scanner
                 </Text>
               </View>
             </View>
+
+            {/* Sign Out */}
             <TouchableOpacity
               onPress={() => {
                 Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -137,272 +188,279 @@ export default function HomeScreen() {
                 ]);
               }}
               activeOpacity={0.7}
-              className="rounded-full p-2.5"
-              style={{ backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderWidth: 1 }}
+              style={[
+                styles.signOutBtn,
+                {
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBorder,
+                  ...c.shadow.sm,
+                },
+              ]}
             >
-              <LogOut size={16} color={colors.textSub} />
+              <LogOut size={16} color={c.textSecondary} />
             </TouchableOpacity>
-          </View>
-
-          {/* Greeting */}
-          <View className="mt-6">
-            <Text style={{ color: colors.textSub }} className="text-[13px]">
-              {greeting},
-            </Text>
-            <Text
-              style={{ color: colors.text }}
-              className="text-[28px] font-bold tracking-tight"
-            >
-              {firstName}
-            </Text>
           </View>
         </View>
 
-        {/* Stats Grid */}
-        <View className="px-6 mt-5">
-          <View className="flex-row flex-wrap" style={{ gap: 10 }}>
+        {/* ─── Greeting ─── */}
+        <Animated.View entering={FadeIn.duration(800)} style={styles.greetingSection}>
+          <Text style={[styles.greetingLabel, { color: c.textSecondary }]}>
+            {greeting},
+          </Text>
+          <Text style={[styles.greetingName, { color: c.text }]}>
+            {firstName}
+          </Text>
+          {/* Decorative accent line */}
+          <View style={[styles.accentLine, { backgroundColor: c.accent }]} />
+        </Animated.View>
+
+        {/* ─── Stats Grid ─── */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.statsGrid}>
             {stats.map((stat, i) => (
-              <View
+              <Animated.View
                 key={i}
-                style={{
-                  backgroundColor: colors.cardBg,
-                  borderColor: colors.cardBorder,
-                  borderWidth: 1,
-                  width: '47.5%',
-                }}
-                className="rounded-2xl p-4"
+                entering={FadeInDown.delay(i * 100).duration(500)}
+                style={[
+                  styles.statCard,
+                  {
+                    backgroundColor: c.cardBg,
+                    borderColor: c.cardBorderSubtle,
+                    ...c.shadow.sm,
+                  },
+                ]}
               >
-                <View className="flex-row items-center justify-between mb-3">
-                  <View
-                    style={{ backgroundColor: stat.bgColor }}
-                    className="h-9 w-9 items-center justify-center rounded-xl"
-                  >
-                    <stat.icon size={16} color={stat.color} />
-                  </View>
-                  {i === 0 && hasCards && (
-                    <View className="flex-row items-center" style={{ gap: 2 }}>
-                      <TrendingUp size={10} color="#10b981" />
-                      <Text style={{ color: '#10b981' }} className="text-[9px] font-semibold">
-                        Active
-                      </Text>
+                {/* Tint overlay at the top */}
+                <View
+                  style={[
+                    styles.statTintOverlay,
+                    { backgroundColor: stat.tintBg },
+                  ]}
+                />
+                <View style={styles.statCardInner}>
+                  <View style={styles.statTopRow}>
+                    <View
+                      style={[
+                        styles.statIconWrap,
+                        { backgroundColor: stat.tintBg },
+                      ]}
+                    >
+                      <stat.icon size={16} color={stat.color} strokeWidth={2} />
                     </View>
-                  )}
+                    {i === 0 && hasCards && (
+                      <View style={[styles.activeBadge, { backgroundColor: c.successSoft }]}>
+                        <TrendingUp size={9} color={c.success} />
+                        <Text style={[styles.activeBadgeText, { color: c.success }]}>
+                          Active
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.statValue, { color: c.text }]}>
+                    {stat.value}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: c.textMuted }]}>
+                    {stat.label}
+                  </Text>
                 </View>
-                <Text
-                  style={{ color: colors.text }}
-                  className="text-[24px] font-bold"
-                >
-                  {stat.value}
-                </Text>
-                <Text
-                  style={{ color: colors.textSub }}
-                  className="text-[11px] font-medium"
-                >
-                  {stat.label}
-                </Text>
-              </View>
+              </Animated.View>
             ))}
           </View>
         </View>
 
-        {/* Scan CTA - Hero */}
-        <View className="px-6 mt-6">
-          <TouchableOpacity
-            onPress={() => router.push('/scanner')}
-            activeOpacity={0.9}
-            style={{
-              backgroundColor: colors.accent,
-              shadowColor: colors.accent,
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.4,
-              shadowRadius: 20,
-              elevation: 10,
-            }}
-            className="rounded-3xl overflow-hidden"
-          >
-            <View className="px-6 py-6">
-              <View className="flex-row items-center">
-                <View
-                  style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-                  className="h-14 w-14 items-center justify-center rounded-2xl mr-4"
-                >
-                  <ScanLine size={26} color="#fff" />
+        {/* ─── Scan CTA Hero ─── */}
+        <View style={styles.sectionContainer}>
+          <Animated.View style={heroAnimatedStyle}>
+            <Pressable
+              onPress={() => router.push('/scanner')}
+              onPressIn={() => { heroScale.value = withSpring(0.97); }}
+              onPressOut={() => { heroScale.value = withSpring(1); }}
+              style={[
+                styles.heroCta,
+                {
+                  backgroundColor: c.accentDark,
+                  ...c.shadow.glow(c.accent),
+                },
+              ]}
+            >
+              {/* Decorative circle top-right — floating */}
+              <Animated.View style={[styles.heroDecoCircle1, floatStyle1]} />
+              {/* Decorative circle bottom-left — floating */}
+              <Animated.View style={[styles.heroDecoCircle2, floatStyle2]} />
+              {/* Decorative ring — floating */}
+              <Animated.View style={[styles.heroDecoRing, floatStyle3]} />
+
+              <View style={styles.heroContent}>
+                <View style={styles.heroIconWrap}>
+                  <ScanLine size={28} color="#fff" strokeWidth={2.2} />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-[18px] font-bold text-white">
-                    Scan Card
-                  </Text>
-                  <Text className="text-[12px] text-white/70 mt-1">
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.heroTitle}>Scan Business Card</Text>
+                  <Text style={styles.heroSubtitle}>
                     AI extracts contacts instantly
                   </Text>
                 </View>
-                <View
-                  style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-                  className="h-10 w-10 items-center justify-center rounded-full"
-                >
-                  <ChevronRight size={20} color="#fff" />
+                <View style={styles.heroArrowWrap}>
+                  <ChevronRight size={22} color="#fff" />
                 </View>
               </View>
-            </View>
-            {/* Decorative elements */}
-            <View
-              style={{
-                position: 'absolute',
-                top: -20,
-                right: -20,
-                width: 100,
-                height: 100,
-                borderRadius: 50,
-                backgroundColor: 'rgba(255,255,255,0.1)',
-              }}
-            />
-            <View
-              style={{
-                position: 'absolute',
-                bottom: -30,
-                left: 40,
-                width: 60,
-                height: 60,
-                borderRadius: 30,
-                backgroundColor: 'rgba(255,255,255,0.05)',
-              }}
-            />
-          </TouchableOpacity>
+            </Pressable>
+          </Animated.View>
         </View>
 
-        {/* Quick Actions */}
-        <View className="px-6 mt-6">
-          <Text
-            style={{ color: colors.textSub }}
-            className="text-[11px] font-semibold tracking-widest uppercase mb-3"
-          >
+        {/* ─── Quick Actions ─── */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: c.textMuted }]}>
             Quick Actions
           </Text>
 
-          <View className="flex-row" style={{ gap: 10 }}>
+          <View style={styles.quickActionsRow}>
+            {/* Contacts */}
             <TouchableOpacity
               onPress={() => router.push('/(tabs)/cards')}
               activeOpacity={0.7}
-              style={{
-                backgroundColor: colors.cardBg,
-                borderColor: colors.cardBorder,
-                borderWidth: 1,
-                flex: 1,
-              }}
-              className="rounded-2xl p-4 items-center"
+              style={[
+                styles.quickActionCard,
+                {
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBorderSubtle,
+                  ...c.shadow.sm,
+                },
+              ]}
             >
               <View
-                style={{ backgroundColor: '#06b6d415' }}
-                className="h-12 w-12 items-center justify-center rounded-2xl mb-3"
+                style={[
+                  styles.quickActionIcon,
+                  { backgroundColor: c.infoSoft },
+                ]}
               >
-                <Users size={20} color="#06b6d4" />
+                <Users size={22} color={c.info} strokeWidth={1.8} />
               </View>
-              <Text style={{ color: colors.text }} className="text-[12px] font-semibold">
+              <Text style={[styles.quickActionLabel, { color: c.text }]}>
                 Contacts
               </Text>
-              <Text style={{ color: colors.textSub }} className="text-[10px] mt-0.5">
+              <Text style={[styles.quickActionSub, { color: c.textMuted }]}>
                 {cards.length} saved
               </Text>
             </TouchableOpacity>
 
+            {/* AI Chat */}
             <TouchableOpacity
               onPress={() => router.push('/(tabs)/chat')}
               activeOpacity={0.7}
-              style={{
-                backgroundColor: colors.cardBg,
-                borderColor: colors.cardBorder,
-                borderWidth: 1,
-                flex: 1,
-              }}
-              className="rounded-2xl p-4 items-center"
+              style={[
+                styles.quickActionCard,
+                {
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBorderSubtle,
+                  ...c.shadow.sm,
+                },
+              ]}
             >
               <View
-                style={{ backgroundColor: '#8b5cf615' }}
-                className="h-12 w-12 items-center justify-center rounded-2xl mb-3"
+                style={[
+                  styles.quickActionIcon,
+                  { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.12)' : 'rgba(139, 92, 246, 0.08)' },
+                ]}
               >
-                <MessageCircle size={20} color="#8b5cf6" />
+                <MessageCircle size={22} color="#a78bfa" strokeWidth={1.8} />
               </View>
-              <Text style={{ color: colors.text }} className="text-[12px] font-semibold">
+              <Text style={[styles.quickActionLabel, { color: c.text }]}>
                 AI Chat
               </Text>
-              <Text style={{ color: colors.textSub }} className="text-[10px] mt-0.5">
+              <Text style={[styles.quickActionSub, { color: c.textMuted }]}>
                 Ask anything
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Recent Contacts */}
+        {/* ─── Recent Contacts ─── */}
         {hasCards && (
-          <View className="px-6 mt-6">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text
-                style={{ color: colors.textSub }}
-                className="text-[11px] font-semibold tracking-widest uppercase"
-              >
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: c.textMuted }]}>
                 Recent Contacts
               </Text>
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/cards')}
-                className="flex-row items-center"
-                style={{ gap: 4 }}
+                style={styles.seeAllBtn}
+                activeOpacity={0.7}
               >
-                <Text style={{ color: colors.accent }} className="text-[11px] font-semibold">
+                <Text style={[styles.seeAllText, { color: c.accent }]}>
                   See All
                 </Text>
-                <ChevronRight size={12} color={colors.accent} />
+                <ChevronRight size={14} color={c.accent} />
               </TouchableOpacity>
             </View>
 
             <View
-              style={{
-                backgroundColor: colors.cardBg,
-                borderColor: colors.cardBorder,
-                borderWidth: 1,
-              }}
-              className="rounded-2xl overflow-hidden"
+              style={[
+                styles.contactsListCard,
+                {
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBorderSubtle,
+                  ...c.shadow.sm,
+                },
+              ]}
             >
               {cards.slice(0, 3).map((card, idx) => {
-                const avatarColors = ['#6366f1', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899'];
-                const colorIndex = card.name ? card.name.charCodeAt(0) % avatarColors.length : 0;
-                const avatarColor = avatarColors[colorIndex];
+                const colorIndex = card.name
+                  ? card.name.charCodeAt(0) % c.avatarColors.length
+                  : 0;
+                const avatarColor = c.avatarColors[colorIndex];
 
                 return (
                   <TouchableOpacity
                     key={card.id}
                     onPress={() => router.push(`/card/${card.id}`)}
                     activeOpacity={0.7}
-                    className="flex-row items-center px-4 py-3.5"
-                    style={{
-                      borderBottomWidth: idx < Math.min(cards.length, 3) - 1 ? 1 : 0,
-                      borderBottomColor: colors.cardBorder,
-                    }}
+                    style={[
+                      styles.contactRow,
+                      idx < Math.min(cards.length, 3) - 1 && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: c.cardBorderSubtle,
+                      },
+                    ]}
                   >
+                    {/* Refined avatar */}
                     <View
-                      style={{ backgroundColor: `${avatarColor}18` }}
-                      className="mr-3 h-11 w-11 items-center justify-center rounded-full"
+                      style={[
+                        styles.avatar,
+                        {
+                          backgroundColor: avatarColor + '18',
+                          borderColor: avatarColor + '30',
+                        },
+                      ]}
                     >
-                      <Text style={{ color: avatarColor }} className="text-[14px] font-bold">
+                      <Text style={[styles.avatarText, { color: avatarColor }]}>
                         {(card.name || '?')[0].toUpperCase()}
                       </Text>
                     </View>
-                    <View className="flex-1">
+
+                    <View style={{ flex: 1 }}>
                       <Text
-                        style={{ color: colors.text }}
-                        className="text-[14px] font-semibold"
+                        style={[styles.contactName, { color: c.text }]}
                         numberOfLines={1}
                       >
                         {card.name || 'Unknown'}
                       </Text>
                       <Text
-                        style={{ color: colors.textSub }}
-                        className="text-[11px] mt-0.5"
+                        style={[styles.contactDetail, { color: c.textMuted }]}
                         numberOfLines={1}
                       >
                         {card.company || card.job_title || card.email || 'No details'}
                       </Text>
                     </View>
-                    <ChevronRight size={16} color={colors.textSub} />
+
+                    <View
+                      style={[
+                        styles.contactArrow,
+                        { backgroundColor: c.bgSubtle },
+                      ]}
+                    >
+                      <ChevronRight size={14} color={c.textMuted} />
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -410,30 +468,45 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Empty State / Tip */}
+        {/* ─── Empty State ─── */}
         {!hasCards && (
-          <View className="px-6 mt-6">
+          <View style={styles.sectionContainer}>
             <View
-              style={{
-                backgroundColor: colors.cardBg,
-                borderColor: colors.cardBorder,
-                borderWidth: 1,
-              }}
-              className="rounded-2xl p-5"
+              style={[
+                styles.emptyStateCard,
+                {
+                  backgroundColor: c.cardBg,
+                  borderColor: c.cardBorderSubtle,
+                  ...c.shadow.md,
+                },
+              ]}
             >
-              <View className="flex-row items-start" style={{ gap: 12 }}>
+              {/* Decorative glow */}
+              <View
+                style={[
+                  styles.emptyStateGlow,
+                  { backgroundColor: c.accentSoft },
+                ]}
+              />
+              <View style={styles.emptyStateContent}>
                 <View
-                  style={{ backgroundColor: colors.accentSoft }}
-                  className="h-10 w-10 items-center justify-center rounded-xl"
+                  style={[
+                    styles.emptyStateIcon,
+                    {
+                      backgroundColor: c.accentSoft,
+                      borderColor: c.accent + '20',
+                    },
+                  ]}
                 >
-                  <Zap size={18} color={colors.accent} />
+                  <Zap size={20} color={c.accent} strokeWidth={2.2} />
                 </View>
-                <View className="flex-1">
-                  <Text style={{ color: colors.text }} className="text-[14px] font-semibold">
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.emptyStateTitle, { color: c.text }]}>
                     Get started
                   </Text>
-                  <Text style={{ color: colors.textSub }} className="text-[12px] mt-1 leading-5">
-                    Scan your first business card to start building your digital network. Our AI will extract all contact details automatically.
+                  <Text style={[styles.emptyStateDesc, { color: c.textSecondary }]}>
+                    Scan your first business card to start building your digital
+                    network. Our AI will extract all contact details automatically.
                   </Text>
                 </View>
               </View>
@@ -441,20 +514,29 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Pro Tip */}
+        {/* ─── Pro Tip ─── */}
         {hasCards && (
-          <View className="px-6 mt-5">
+          <View style={[styles.sectionContainer, { marginTop: spacing.md }]}>
             <View
-              style={{
-                backgroundColor: colors.accentSoft,
-                borderColor: colors.accent + '30',
-                borderWidth: 1,
-              }}
-              className="rounded-xl px-4 py-3 flex-row items-center"
+              style={[
+                styles.proTipCard,
+                {
+                  backgroundColor: c.accentSoft,
+                  borderColor: c.accent + '25',
+                },
+              ]}
             >
-              <Clock size={14} color={colors.accent} />
-              <Text style={{ color: colors.accent }} className="text-[11px] ml-2 flex-1">
-                <Text className="font-semibold">Tip:</Text> Use AI Chat to search contacts by company or role
+              <View
+                style={[
+                  styles.proTipIconWrap,
+                  { backgroundColor: c.accent + '20' },
+                ]}
+              >
+                <Clock size={14} color={c.accent} />
+              </View>
+              <Text style={[styles.proTipText, { color: c.accentLight }]}>
+                <Text style={{ fontWeight: '700' }}>Pro Tip: </Text>
+                Use AI Chat to search contacts by company or role
               </Text>
             </View>
           </View>
@@ -463,3 +545,379 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  /* ── Header ── */
+  header: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  logoMark: {
+    height: 44,
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+  },
+  brandName: {
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
+  brandTagline: {
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
+  signOutBtn: {
+    height: 40,
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
+    borderWidth: 1,
+  },
+
+  /* ── Greeting ── */
+  greetingSection: {
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing['2xl'],
+  },
+  greetingLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+  greetingName: {
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    marginTop: 2,
+  },
+  accentLine: {
+    width: 32,
+    height: 3,
+    borderRadius: 2,
+    marginTop: spacing.md,
+    opacity: 0.7,
+  },
+
+  /* ── Section Containers ── */
+  sectionContainer: {
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing['2xl'],
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+
+  /* ── Stats Grid ── */
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  statCard: {
+    width: '47.5%',
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  statTintOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+  },
+  statCardInner: {
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  statTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  statIconWrap: {
+    height: 38,
+    width: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    gap: 3,
+  },
+  activeBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+    letterSpacing: 0.2,
+  },
+
+  /* ── Hero CTA ── */
+  heroCta: {
+    borderRadius: radius['2xl'],
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing['2xl'],
+  },
+  heroIconWrap: {
+    height: 56,
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: radius.xl,
+    marginRight: spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  heroTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.3,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  heroArrowWrap: {
+    height: 42,
+    width: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  heroDecoCircle1: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroDecoCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  heroDecoRing: {
+    position: 'absolute',
+    top: 10,
+    right: 60,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+
+  /* ── Quick Actions ── */
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  quickActionCard: {
+    flex: 1,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    height: 52,
+    width: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.xl,
+    marginBottom: spacing.md,
+  },
+  quickActionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.1,
+  },
+  quickActionSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 3,
+  },
+
+  /* ── Recent Contacts ── */
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  contactsListCard: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
+  },
+  avatar: {
+    height: 46,
+    width: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
+    marginRight: spacing.md,
+    borderWidth: 1.5,
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  contactName: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  contactDetail: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '400',
+  },
+  contactArrow: {
+    height: 28,
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
+    marginLeft: spacing.sm,
+  },
+
+  /* ── Empty State ── */
+  emptyStateCard: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  emptyStateGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    opacity: 0.5,
+  },
+  emptyStateContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  emptyStateIcon: {
+    height: 44,
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  emptyStateDesc: {
+    fontSize: 13,
+    marginTop: 6,
+    lineHeight: 20,
+    fontWeight: '400',
+  },
+
+  /* ── Pro Tip ── */
+  proTipCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  proTipIconWrap: {
+    height: 28,
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.sm,
+  },
+  proTipText: {
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+});

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Captr - Test Razorpay Payment</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .container { max-width: 480px; width: 100%; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #fff; }
+    .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 32px; }
+    .card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      padding: 24px; margin-bottom: 16px; cursor: pointer; transition: all 0.2s;
+    }
+    .card:hover { border-color: #6366f1; transform: translateY(-2px); }
+    .card.selected { border-color: #6366f1; box-shadow: 0 0 20px rgba(99,102,241,0.2); }
+    .plan-name { font-size: 14px; color: #94a3b8; margin-bottom: 4px; }
+    .price { font-size: 32px; font-weight: 800; color: #fff; }
+    .price span { font-size: 14px; color: #64748b; font-weight: 500; }
+    .badge { background: #10b981; color: #fff; font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 6px; display: inline-block; margin-left: 8px; }
+    .btn {
+      width: 100%; padding: 16px; background: #6366f1; color: #fff; border: none;
+      border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;
+      margin-top: 24px; transition: all 0.2s;
+    }
+    .btn:hover { background: #4f46e5; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 20px; padding: 16px; border-radius: 12px; font-size: 13px; display: none; }
+    .status.success { display: block; background: #10b98120; border: 1px solid #10b98140; color: #10b981; }
+    .status.error { display: block; background: #ef444420; border: 1px solid #ef444440; color: #ef4444; }
+    .status.info { display: block; background: #6366f120; border: 1px solid #6366f140; color: #818cf8; }
+    .test-cards { margin-top: 32px; padding: 20px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; }
+    .test-cards h3 { font-size: 14px; color: #94a3b8; margin-bottom: 12px; }
+    .test-cards table { width: 100%; font-size: 12px; }
+    .test-cards td { padding: 6px 0; color: #cbd5e1; }
+    .test-cards td:first-child { color: #94a3b8; width: 120px; }
+    code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test Razorpay Payment</h1>
+    <p class="subtitle">Select a plan and test the payment flow</p>
+
+    <div class="card selected" onclick="selectPlan('monthly')" id="card-monthly">
+      <div class="plan-name">Monthly</div>
+      <div class="price">₹299<span>/month</span></div>
+    </div>
+
+    <div class="card" onclick="selectPlan('yearly')" id="card-yearly">
+      <div class="plan-name">Yearly <span class="badge">Save 72%</span></div>
+      <div class="price">₹999<span>/year</span></div>
+    </div>
+
+    <button class="btn" id="payBtn" onclick="startPayment()">Pay with Razorpay (Test Mode)</button>
+
+    <div class="status" id="status"></div>
+
+    <div class="test-cards">
+      <h3>🔑 Test Payment Credentials</h3>
+      <table>
+        <tr><td>Card (Success)</td><td><code>4111 1111 1111 1111</code></td></tr>
+        <tr><td>Expiry</td><td><code>Any future date</code></td></tr>
+        <tr><td>CVV</td><td><code>Any 3 digits</code></td></tr>
+        <tr><td>UPI (Success)</td><td><code>success@razorpay</code></td></tr>
+        <tr><td>UPI (Failure)</td><td><code>failure@razorpay</code></td></tr>
+        <tr><td>OTP (if asked)</td><td><code>Any digits</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    const BACKEND_URL = 'http://localhost:3002';
+    let selectedPlan = 'monthly';
+
+    function selectPlan(plan) {
+      selectedPlan = plan;
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+      document.getElementById('card-' + plan).classList.add('selected');
+    }
+
+    function showStatus(type, message) {
+      const el = document.getElementById('status');
+      el.className = 'status ' + type;
+      el.innerHTML = message;
+    }
+
+    async function startPayment() {
+      const btn = document.getElementById('payBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating order...';
+      showStatus('info', '⏳ Creating Razorpay order...');
+
+      try {
+        // Step 1: Create order (using a dummy auth token for testing)
+        const res = await fetch(BACKEND_URL + '/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId: selectedPlan }),
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          showStatus('error', '❌ Error: ' + (json.error || 'Failed to create order') +
+            '<br><br>Note: This test requires authentication. If you see "Unauthorized", that\'s expected — the payment flow works through the app where you\'re logged in.' +
+            '<br><br>But you can still verify your Razorpay keys are working by checking the error message.');
+          btn.disabled = false;
+          btn.textContent = 'Pay with Razorpay (Test Mode)';
+          return;
+        }
+
+        showStatus('info', '✅ Order created: ' + json.data.orderId + '<br>Opening Razorpay checkout...');
+
+        // Step 2: Open Razorpay
+        const options = {
+          key: json.data.keyId,
+          amount: json.data.amount,
+          currency: json.data.currency,
+          name: 'Captr - Business Card Scanner',
+          description: json.data.planName,
+          order_id: json.data.orderId,
+          prefill: { email: 'test@example.com', name: 'Test User' },
+          theme: { color: '#6366f1' },
+          handler: function(response) {
+            showStatus('success',
+              '✅ Payment Successful!<br><br>' +
+              '<strong>Payment ID:</strong> ' + response.razorpay_payment_id + '<br>' +
+              '<strong>Order ID:</strong> ' + response.razorpay_order_id + '<br>' +
+              '<strong>Signature:</strong> ' + response.razorpay_signature.substring(0, 20) + '...<br><br>' +
+              'In the app, this would automatically verify and activate the subscription.'
+            );
+            btn.disabled = false;
+            btn.textContent = 'Pay with Razorpay (Test Mode)';
+          },
+          modal: {
+            ondismiss: function() {
+              showStatus('info', 'ℹ️ Payment cancelled by user.');
+              btn.disabled = false;
+              btn.textContent = 'Pay with Razorpay (Test Mode)';
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function(response) {
+          showStatus('error', '❌ Payment Failed: ' + response.error.description);
+          btn.disabled = false;
+          btn.textContent = 'Pay with Razorpay (Test Mode)';
+        });
+        rzp.open();
+
+      } catch (err) {
+        showStatus('error', '❌ Network error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Pay with Razorpay (Test Mode)';
+      }
+    }
+  </script>
+</body>
+</html>

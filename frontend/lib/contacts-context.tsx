@@ -25,6 +25,7 @@ interface ContactsContextType {
   loading: boolean;
   fetchCards: () => Promise<void>;
   addCard: (card: Partial<Card>) => Promise<Card | null>;
+  findDuplicate: (card: Partial<Card>) => Card | null;
   updateCard: (id: string, data: Partial<Card>) => Promise<Card | null>;
   deleteCard: (id: string) => Promise<boolean>;
 }
@@ -34,6 +35,7 @@ const ContactsContext = createContext<ContactsContextType>({
   loading: false,
   fetchCards: async () => {},
   addCard: async () => null,
+  findDuplicate: () => null,
   updateCard: async () => null,
   deleteCard: async () => false,
 });
@@ -65,6 +67,36 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, []);
+
+  /** Check if an incoming card matches an existing contact by name+email or name+phone */
+  const findDuplicate = useCallback(
+    (card: Partial<Card>): Card | null => {
+      const norm = (s?: string) => (s || '').trim().toLowerCase();
+      const incomingName = norm(card.name);
+      const incomingEmail = norm(card.email);
+      const incomingPhone = norm(card.phone)?.replace(/[\s\-()]/g, '');
+
+      if (!incomingName && !incomingEmail && !incomingPhone) return null;
+
+      return (
+        cards.find((existing) => {
+          const eName = norm(existing.name);
+          const eEmail = norm(existing.email);
+          const ePhone = norm(existing.phone)?.replace(/[\s\-()]/g, '');
+
+          // Exact name match
+          if (incomingName && eName && incomingName === eName) return true;
+          // Same email (non-empty)
+          if (incomingEmail && eEmail && incomingEmail === eEmail) return true;
+          // Same phone (non-empty, normalized)
+          if (incomingPhone && ePhone && incomingPhone === ePhone) return true;
+
+          return false;
+        }) || null
+      );
+    },
+    [cards],
+  );
 
   const addCard = useCallback(async (card: Partial<Card>) => {
     try {
@@ -125,7 +157,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ContactsContext.Provider value={{ cards, loading, fetchCards, addCard, updateCard, deleteCard }}>
+    <ContactsContext.Provider value={{ cards, loading, fetchCards, addCard, findDuplicate, updateCard, deleteCard }}>
       {children}
     </ContactsContext.Provider>
   );

@@ -1,7 +1,15 @@
 node_modules
 .env
 .env.local
+.env.*
 dist
 build
 *.log
 .DS_Store
+test-payment.html
+railway.json
+.eslintrc*
+.prettierrc*
+nodemon.json
+scripts/
+debug.log

@@ -37,6 +37,8 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   signInWithGoogle: async () => {},
   signOut: async () => {},
+  updateUserProfile: async () => {},
+  changePassword: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -101,14 +103,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (result.type === 'error') {
         Alert.alert('Error', result.error?.message || 'Google sign-in failed');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Google sign-in error:', err);
-      Alert.alert('Error', err.message || 'Google sign-in failed');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      Alert.alert('Error', errorMessage || 'Google sign-in failed');
     }
   }, []);
 
   const signOut = async () => {
     await firebaseSignOut(auth);
+  };
+
+  const updateUserProfile = async (displayName: string) => {
+    if (!auth.currentUser) throw new Error('No user logged in');
+    await updateProfile(auth.currentUser, { displayName });
+    // Force refresh the user state
+    setUser({ ...auth.currentUser });
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      throw new Error('No user logged in');
+    }
+    // Re-authenticate user before changing password
+    const credential = EmailAuthProvider.credential(
+      auth.currentUser.email,
+      currentPassword
+    );
+    await reauthenticateWithCredential(auth.currentUser, credential);
+    await updatePassword(auth.currentUser, newPassword);
   };
 
   return (
@@ -120,6 +143,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signInWithGoogle,
         signOut,
+        updateUserProfile,
+        changePassword,
       }}
     >
       {children}

@@ -1,23 +1,24 @@
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, UserIcon } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import { useState } from 'react';
+import { useTheme } from '@/lib/theme-context';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Pressable,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { premiumColors, radius, spacing } from '@/lib/premium-theme';
 
 export default function SignUpScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const router = useRouter();
   const { signUp, signInWithGoogle } = useAuth();
 
@@ -29,18 +30,17 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [nameFocused, setNameFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
 
-  const colors = {
-    bg: isDark ? '#0c0f1a' : '#f5f7fa',
-    cardBg: isDark ? '#161b2e' : '#ffffff',
-    cardBorder: isDark ? '#1e2642' : '#e8ecf4',
-    text: isDark ? '#eef0f6' : '#0f172a',
-    textSub: isDark ? '#7c8db5' : '#64748b',
-    accent: '#6366f1',
-    accentSoft: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
-    inputBg: isDark ? '#111627' : '#f0f2f7',
-    danger: '#ef4444',
-  };
+  const nameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
+
+  const colors = premiumColors(isDark);
 
   const handleSignUp = async () => {
     if (!email.trim() || !password.trim()) {
@@ -60,14 +60,16 @@ export default function SignUpScreen() {
     try {
       await signUp(email.trim(), password, name.trim() || undefined);
       router.replace('/(tabs)');
-    } catch (err: any) {
-      const msg = err.code === 'auth/email-already-in-use'
+    } catch (err: unknown) {
+      const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : undefined;
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      const msg = errorCode === 'auth/email-already-in-use'
         ? 'An account with this email already exists'
-        : err.code === 'auth/weak-password'
+        : errorCode === 'auth/weak-password'
         ? 'Password is too weak'
-        : err.code === 'auth/invalid-email'
+        : errorCode === 'auth/invalid-email'
         ? 'Invalid email address'
-        : err.message || 'Sign up failed';
+        : errorMessage || 'Sign up failed';
       setError(msg);
     } finally {
       setLoading(false);
@@ -79,8 +81,9 @@ export default function SignUpScreen() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Google sign up failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage || 'Google sign up failed');
     } finally {
       setGoogleLoading(false);
     }
@@ -88,39 +91,72 @@ export default function SignUpScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* Decorative background accent */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -100,
+          left: -80,
+          width: 240,
+          height: 240,
+          borderRadius: 120,
+          backgroundColor: colors.accentGlow,
+        }}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         <ScrollView
-          className="flex-1"
+          style={{ flex: 1 }}
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28 }}
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View className="pt-4 pb-8">
+          <View style={{ paddingTop: 16, paddingBottom: 36 }}>
             <TouchableOpacity
               onPress={() => router.back()}
               activeOpacity={0.7}
-              className="flex-row items-center rounded-xl self-start px-3 py-2"
-              style={{ gap: 4, backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderWidth: 1 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                gap: 6,
+                backgroundColor: colors.glassBg,
+                borderColor: colors.glassBorder,
+                borderWidth: 1,
+                borderRadius: radius.md,
+                ...colors.shadow.sm,
+              }}
             >
               <ArrowLeft size={16} color={colors.text} />
-              <Text style={{ color: colors.text }} className="text-[12px] font-medium">Back</Text>
+              <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
           </View>
 
           {/* Title */}
-          <View className="mb-8">
+          <View style={{ marginBottom: 32 }}>
             <Text
-              style={{ color: colors.text }}
-              className="text-[26px] font-bold tracking-tight"
+              style={{
+                color: colors.text,
+                fontSize: 32,
+                fontWeight: '800',
+                letterSpacing: -0.8,
+              }}
             >
               Create account
             </Text>
             <Text
-              style={{ color: colors.textSub }}
-              className="mt-1.5 text-[14px]"
+              style={{
+                color: colors.textSecondary,
+                marginTop: 8,
+                fontSize: 15,
+                lineHeight: 22,
+              }}
             >
               Start scanning and organizing contacts
             </Text>
@@ -129,110 +165,231 @@ export default function SignUpScreen() {
           {/* Error */}
           {error ? (
             <View
-              style={{ backgroundColor: `${colors.danger}12` }}
-              className="rounded-xl px-4 py-3 mb-4"
+              style={{
+                backgroundColor: colors.dangerSoft,
+                borderColor: isDark ? 'rgba(248, 113, 113, 0.2)' : 'rgba(248, 113, 113, 0.15)',
+                borderWidth: 1,
+                borderRadius: radius.lg,
+                paddingHorizontal: 18,
+                paddingVertical: 14,
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+              }}
             >
-              <Text style={{ color: colors.danger }} className="text-[12px]">
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: colors.danger,
+                }}
+              />
+              <Text style={{ color: colors.danger, fontSize: 13, fontWeight: '500', flex: 1 }}>
                 {error}
               </Text>
             </View>
           ) : null}
 
           {/* Name Input */}
-          <View className="mb-3">
-            <Text style={{ color: colors.textSub }} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+          <View style={{ marginBottom: 16 }}>
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: 1.5,
+                marginBottom: 8,
+              }}
+            >
               Name
             </Text>
-            <View
-              style={{ backgroundColor: colors.inputBg }}
-              className="flex-row items-center rounded-xl px-4"
+            <Pressable
+              onPress={() => nameRef.current?.focus()}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.inputBg,
+                borderRadius: radius.lg,
+                paddingHorizontal: 16,
+                borderWidth: 1.5,
+                borderColor: nameFocused ? colors.inputFocusBorder : colors.inputBorder,
+              }}
             >
-              <UserIcon size={16} color={colors.textSub} />
+              <UserIcon size={17} color={nameFocused ? colors.accent : colors.textMuted} />
               <TextInput
+                ref={nameRef}
                 value={name}
                 onChangeText={setName}
                 placeholder="Your name"
-                placeholderTextColor={colors.textSub}
-                style={{ color: colors.text, flex: 1, marginLeft: 10 }}
-                className="text-[14px] py-4"
+                placeholderTextColor={colors.textMuted}
+                style={{
+                  color: colors.text,
+                  flex: 1,
+                  marginLeft: 12,
+                  fontSize: 15,
+                  paddingVertical: 18,
+                }}
                 autoCorrect={false}
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
               />
-            </View>
+            </Pressable>
           </View>
 
           {/* Email Input */}
-          <View className="mb-3">
-            <Text style={{ color: colors.textSub }} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+          <View style={{ marginBottom: 16 }}>
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: 1.5,
+                marginBottom: 8,
+              }}
+            >
               Email
             </Text>
-            <View
-              style={{ backgroundColor: colors.inputBg }}
-              className="flex-row items-center rounded-xl px-4"
+            <Pressable
+              onPress={() => emailRef.current?.focus()}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.inputBg,
+                borderRadius: radius.lg,
+                paddingHorizontal: 16,
+                borderWidth: 1.5,
+                borderColor: emailFocused ? colors.inputFocusBorder : colors.inputBorder,
+              }}
             >
-              <Mail size={16} color={colors.textSub} />
+              <Mail size={17} color={emailFocused ? colors.accent : colors.textMuted} />
               <TextInput
+                ref={emailRef}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="your@email.com"
-                placeholderTextColor={colors.textSub}
-                style={{ color: colors.text, flex: 1, marginLeft: 10 }}
-                className="text-[14px] py-4"
+                placeholderTextColor={colors.textMuted}
+                style={{
+                  color: colors.text,
+                  flex: 1,
+                  marginLeft: 12,
+                  fontSize: 15,
+                  paddingVertical: 18,
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
               />
-            </View>
+            </Pressable>
           </View>
 
           {/* Password Input */}
-          <View className="mb-3">
-            <Text style={{ color: colors.textSub }} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+          <View style={{ marginBottom: 16 }}>
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: 1.5,
+                marginBottom: 8,
+              }}
+            >
               Password
             </Text>
-            <View
-              style={{ backgroundColor: colors.inputBg }}
-              className="flex-row items-center rounded-xl px-4"
+            <Pressable
+              onPress={() => passwordRef.current?.focus()}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.inputBg,
+                borderRadius: radius.lg,
+                paddingHorizontal: 16,
+                borderWidth: 1.5,
+                borderColor: passwordFocused ? colors.inputFocusBorder : colors.inputBorder,
+              }}
             >
-              <Lock size={16} color={colors.textSub} />
+              <Lock size={17} color={passwordFocused ? colors.accent : colors.textMuted} />
               <TextInput
+                ref={passwordRef}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="At least 6 characters"
-                placeholderTextColor={colors.textSub}
-                style={{ color: colors.text, flex: 1, marginLeft: 10 }}
-                className="text-[14px] py-4"
+                placeholderTextColor={colors.textMuted}
+                style={{
+                  color: colors.text,
+                  flex: 1,
+                  marginLeft: 12,
+                  fontSize: 15,
+                  paddingVertical: 18,
+                }}
                 secureTextEntry={!showPassword}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ padding: 4 }}
+              >
                 {showPassword ? (
-                  <EyeOff size={16} color={colors.textSub} />
+                  <EyeOff size={17} color={colors.textMuted} />
                 ) : (
-                  <Eye size={16} color={colors.textSub} />
+                  <Eye size={17} color={colors.textMuted} />
                 )}
               </TouchableOpacity>
-            </View>
+            </Pressable>
           </View>
 
           {/* Confirm Password Input */}
-          <View className="mb-5">
-            <Text style={{ color: colors.textSub }} className="text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+          <View style={{ marginBottom: 28 }}>
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: 1.5,
+                marginBottom: 8,
+              }}
+            >
               Confirm Password
             </Text>
-            <View
-              style={{ backgroundColor: colors.inputBg }}
-              className="flex-row items-center rounded-xl px-4"
+            <Pressable
+              onPress={() => confirmRef.current?.focus()}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.inputBg,
+                borderRadius: radius.lg,
+                paddingHorizontal: 16,
+                borderWidth: 1.5,
+                borderColor: confirmFocused ? colors.inputFocusBorder : colors.inputBorder,
+              }}
             >
-              <Lock size={16} color={colors.textSub} />
+              <Lock size={17} color={confirmFocused ? colors.accent : colors.textMuted} />
               <TextInput
+                ref={confirmRef}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm your password"
-                placeholderTextColor={colors.textSub}
-                style={{ color: colors.text, flex: 1, marginLeft: 10 }}
-                className="text-[14px] py-4"
+                placeholderTextColor={colors.textMuted}
+                style={{
+                  color: colors.text,
+                  flex: 1,
+                  marginLeft: 12,
+                  fontSize: 15,
+                  paddingVertical: 18,
+                }}
                 secureTextEntry={!showPassword}
+                onFocus={() => setConfirmFocused(true)}
+                onBlur={() => setConfirmFocused(false)}
               />
-            </View>
+            </Pressable>
           </View>
 
           {/* Sign Up Button */}
@@ -240,29 +397,60 @@ export default function SignUpScreen() {
             onPress={handleSignUp}
             disabled={loading}
             activeOpacity={0.85}
-            className="w-full items-center justify-center rounded-2xl"
             style={{
-              paddingVertical: 18,
-              backgroundColor: colors.accent,
+              width: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: radius.xl,
+              paddingVertical: 20,
+              backgroundColor: colors.accentDark,
               opacity: loading ? 0.7 : 1,
-              shadowColor: colors.accent,
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.3,
-              shadowRadius: 16,
+              ...colors.shadow.glow(colors.accent),
             }}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-[15px] font-semibold text-white">Create Account</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#ffffff' }}>
+                Create Account
+              </Text>
             )}
           </TouchableOpacity>
 
           {/* Divider */}
-          <View className="flex-row items-center my-6" style={{ gap: 12 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.cardBorder }} />
-            <Text style={{ color: colors.textSub }} className="text-[11px]">or</Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.cardBorder }} />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginVertical: 28,
+              gap: 16,
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: colors.cardBorder,
+              }}
+            />
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 12,
+                fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}
+            >
+              or
+            </Text>
+            <View
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: colors.cardBorder,
+              }}
+            />
           </View>
 
           {/* Google Sign Up */}
@@ -270,22 +458,49 @@ export default function SignUpScreen() {
             onPress={handleGoogleSignUp}
             disabled={googleLoading}
             activeOpacity={0.7}
-            className="w-full flex-row items-center justify-center rounded-2xl"
             style={{
-              paddingVertical: 18,
-              backgroundColor: colors.cardBg,
-              borderColor: colors.cardBorder,
+              width: '100%',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: radius.xl,
+              paddingVertical: 20,
+              backgroundColor: colors.glassBg,
+              borderColor: colors.glassBorder,
               borderWidth: 1,
-              gap: 10,
+              gap: 12,
               opacity: googleLoading ? 0.7 : 1,
+              ...colors.shadow.sm,
             }}
           >
             {googleLoading ? (
               <ActivityIndicator color={colors.text} />
             ) : (
               <>
-                <Text style={{ fontSize: 18 }}>G</Text>
-                <Text style={{ color: colors.text }} className="text-[14px] font-semibold">
+                {/* Google G Logo */}
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 4,
+                    backgroundColor: '#ffffff',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    ...colors.shadow.sm,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: '#4285F4',
+                      marginTop: -1,
+                    }}
+                  >
+                    G
+                  </Text>
+                </View>
+                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>
                   Continue with Google
                 </Text>
               </>
@@ -293,12 +508,20 @@ export default function SignUpScreen() {
           </TouchableOpacity>
 
           {/* Switch to Sign In */}
-          <View className="flex-row items-center justify-center mt-8 mb-4">
-            <Text style={{ color: colors.textSub }} className="text-[13px]">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 36,
+              marginBottom: 20,
+            }}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
               Already have an account?{' '}
             </Text>
             <TouchableOpacity onPress={() => router.replace('/auth/signin')}>
-              <Text style={{ color: colors.accent }} className="text-[13px] font-semibold">
+              <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '700' }}>
                 Sign In
               </Text>
             </TouchableOpacity>
