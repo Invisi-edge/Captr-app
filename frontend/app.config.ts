@@ -32,6 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'com.captr.scanner',
     edgeToEdgeEnabled: true,
+    versionCode: 3,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
@@ -40,9 +41,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'CAMERA',
       'READ_CONTACTS',
       'WRITE_CONTACTS',
-      'INTERNET',
-      'READ_EXTERNAL_STORAGE',
       'VIBRATE',
+    ],
+    blockedPermissions: [
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.RECORD_AUDIO',
+      'android.permission.READ_PHONE_STATE',
+      'android.permission.SYSTEM_ALERT_WINDOW',
+    ],
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [{ scheme: 'captr' }],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
     ],
   },
   web: {
@@ -80,6 +94,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-web-browser',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          usesCleartextTraffic: false,
+          enableProguardInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+        },
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
