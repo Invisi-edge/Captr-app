@@ -3,7 +3,7 @@ import { auth } from '@/lib/firebase';
 import { useSubscription } from '@/lib/subscription-context';
 import { useTheme } from '@/lib/theme-context';
 import { useRouter } from 'expo-router';
-import { Send, Bot, User, Trash2, Sparkles, Crown, Lock, ChevronRight } from 'lucide-react-native';
+import { Send, User, Trash2, Sparkles, Crown, Lock } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -121,11 +121,8 @@ export default function ChatScreen() {
     if (!canUseAI()) {
       Alert.alert(
         'Pro Feature',
-        'AI Assistant is available on Monthly and Yearly plans. Upgrade to unlock!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'View Plans', onPress: () => router.push('/plans') },
-        ],
+        'AI Assistant will be available with Pro plans. Coming soon!',
+        [{ text: 'OK' }],
       );
       return;
     }
@@ -388,12 +385,10 @@ export default function ChatScreen() {
             ))}
           </View>
 
-          {/* Upgrade button */}
-          <TouchableOpacity
-            onPress={() => router.push('/plans')}
-            activeOpacity={0.85}
+          {/* Coming Soon badge */}
+          <View
             style={{
-              backgroundColor: c.accent,
+              backgroundColor: `${c.accent}20`,
               borderRadius: radius.xl,
               paddingVertical: 16,
               paddingHorizontal: 32,
@@ -402,15 +397,16 @@ export default function ChatScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 10,
-              ...c.shadow.glow(c.accent),
+              borderWidth: 1,
+              borderColor: `${c.accent}40`,
             }}
           >
-            <Crown size={18} color="#fff" />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>Upgrade to Pro</Text>
-          </TouchableOpacity>
+            <Crown size={18} color={c.accent} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: c.accent }}>Coming Soon</Text>
+          </View>
 
           <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 12, textAlign: 'center' }}>
-            Starting at just ₹299/month
+            Pro plans are launching soon!
           </Text>
         </View>
       </SafeAreaView>

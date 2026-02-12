@@ -238,7 +238,7 @@ export default function PrivacyPolicyScreen() {
               colors={colors}
             />
             <BulletPoint
-              text="Payment Information: Transaction IDs and plan details for Pro subscriptions. We do not store your card/bank details — all payments are processed securely by Razorpay."
+              text="Payment Information: When Pro subscriptions become available, transaction IDs and plan details will be stored. We will not store your card/bank details — all payments will be processed securely by our payment provider."
               colors={colors}
             />
             <BulletPoint
@@ -267,7 +267,7 @@ export default function PrivacyPolicyScreen() {
               colors={colors}
             />
             <BulletPoint
-              text="To manage your subscription and process payments through Razorpay."
+              text="To manage your subscription and process payments (when available)."
               colors={colors}
             />
             <BulletPoint
@@ -308,7 +308,7 @@ export default function PrivacyPolicyScreen() {
               colors={colors}
             />
             <BulletPoint
-              text="Payment processing is handled entirely by Razorpay (PCI DSS compliant). We never store your financial details."
+              text="When payments are enabled, processing will be handled by a PCI DSS compliant payment provider. We will never store your financial details."
               colors={colors}
             />
           </PolicySection>
@@ -326,7 +326,7 @@ export default function PrivacyPolicyScreen() {
             />
             <BulletPoint text="Firebase (Google) — Authentication, database, and cloud storage." colors={colors} />
             <BulletPoint text="OpenAI — For OCR text extraction and AI chatbot functionality." colors={colors} />
-            <BulletPoint text="Razorpay — For secure payment processing (India)." colors={colors} />
+            <BulletPoint text="Google Play Billing — For secure payment processing (when available)." colors={colors} />
             <BulletPoint text="Expo / EAS — For app building and over-the-air updates." colors={colors} />
             <Paragraph
               text="Each of these services has their own privacy policies. We recommend reviewing them for complete information about how they handle data."

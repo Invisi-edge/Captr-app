@@ -95,7 +95,7 @@ export default function CardDetailScreen() {
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'An error occurred';
-      console.error('fetch card error:', message);
+      // Fetch card error silenced for production
     } finally {
       setLoading(false);
     }

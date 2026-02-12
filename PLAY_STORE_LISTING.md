@@ -13,21 +13,19 @@ Built for Indian professionals — whether you are at a trade expo, startup meet
 
 KEY FEATURES:
 
-🔍 AI-Powered Scanning: Take a photo or import from gallery. Our GPT-4o powered OCR accurately reads cards in Hindi, English, and regional languages with any layout.
+🔍 AI-Powered Scanning: Take a photo or import from gallery. Our AI-powered OCR accurately reads cards in Hindi, English, and regional languages with any layout.
 
 📇 Front & Back Support: Capture both sides of a card for complete information extraction — including GST numbers, PAN details, and multiple phone numbers.
 
 📱 Smart Contact Management: All your scanned contacts are organised and searchable in one place. Find contacts by name, company, designation, or city.
 
-🤖 AI Chat Assistant: Ask questions about your contacts, find people by company or role, and get networking insights powered by AI.
-
-☁️ Cloud Sync: Your contacts are securely stored in the cloud and accessible from anywhere.
-
-📊 Export Options: Export your contacts as Excel or CSV files for easy sharing, backup, or importing into your CRM.
+📊 Export to CSV: Export your contacts as CSV files for easy sharing, backup, or importing into your CRM.
 
 ✏️ Review & Edit: Review extracted data before saving and make corrections if needed.
 
 🚫 No Duplicates: Smart duplicate detection prevents saving the same contact twice.
+
+☁️ Cloud Storage: Your contacts are securely stored and accessible from your account.
 
 INDIAN BUSINESS FEATURES:
 • Auto-detects +91 Indian phone numbers
@@ -73,4 +71,4 @@ English (India)
 
 ## Contact Details (for Play Store listing)
 - Email: support@captr.app
-- Privacy Policy URL: [Host your privacy-policy.html and add URL here]
+- Privacy Policy URL: https://captr-app-production.up.railway.app/privacy-policy

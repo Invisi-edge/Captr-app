@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setIsDark(savedTheme === 'dark');
       }
     } catch (e) {
-      console.error('Failed to load theme:', e);
+      // Theme load error silenced for production
     }
   };
 
@@ -43,7 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setColorScheme(theme);
       setIsDark(theme === 'dark');
     } catch (e) {
-      console.error('Failed to save theme:', e);
+      // Theme save error silenced for production
     }
   };
 

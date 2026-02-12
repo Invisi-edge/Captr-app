@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 import { BACKEND_URL } from './api';
 import { auth } from './firebase';
 import { PlanId, getPlan } from './plans';
@@ -87,7 +86,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         });
       }
     } catch (error: unknown) {
-      console.error('Fetch subscription error:', error);
+      // Subscription fetch error silenced for production
       setState((prev) => ({ ...prev, loading: false }));
     }
   }, []);
@@ -157,127 +156,21 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       return false;
     } catch (error: unknown) {
-      console.error('Record scan error:', error);
+      // Record scan error silenced for production
       return true; // Allow scan on network error to not block UX
     }
   }, []);
 
-  const subscribe = useCallback(async (planId: 'monthly' | 'yearly'): Promise<boolean> => {
-    try {
-      // Ensure user is logged in
-      const user = auth.currentUser;
-      if (!user) {
-        Alert.alert('Not Signed In', 'Please sign in to subscribe.');
-        return false;
-      }
-
-      let token: string;
-      try {
-        // Try force refresh first
-        token = await user.getIdToken(true);
-      } catch {
-        try {
-          // Fallback: use cached token
-          token = await user.getIdToken(false);
-        } catch {
-          Alert.alert('Auth Error', 'Could not authenticate. Please sign out and sign in again.');
-          return false;
-        }
-      }
-
-      // Step 1: Create order on backend
-      const orderRes = await fetch(`${BACKEND_URL}/api/payments/create-order`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ planId }),
-      });
-      const orderJson = await orderRes.json();
-
-      if (!orderJson.success) {
-        Alert.alert('Error', orderJson.error || 'Failed to create order');
-        return false;
-      }
-
-      const { orderId, amount } = orderJson.data;
-
-      // Step 2: Build checkout URL with query params (including auth token for server-side verification)
-      const checkoutParams = new URLSearchParams({
-        order_id: orderId,
-        amount: String(amount),
-        plan_name: orderJson.data.planName,
-        plan_id: planId,
-        email: user?.email || '',
-        name: user?.displayName || '',
-        token: token || '',
-      });
-
-      const checkoutUrl = `${BACKEND_URL}/api/payments/checkout?${checkoutParams.toString()}`;
-
-      // Step 4: Open Razorpay checkout in browser.
-      // Use openBrowserAsync (works reliably on Android + Expo Go).
-      // The checkout page will redirect to our callback URL after payment,
-      // which re-opens the app via deep link.
-      await WebBrowser.openBrowserAsync(checkoutUrl, {
-        showInRecents: true,
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-      });
-
-      // Step 5: When user returns to the app (after payment or cancel),
-      // poll the subscription multiple times to catch payment verification.
-      // The backend checkout page auto-verifies via the callback URL.
-      const pollDelays = [1500, 2500, 4000, 6000]; // progressive polling
-      for (const delay of pollDelays) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-
-        try {
-          const freshToken = await auth.currentUser?.getIdToken(true);
-          const checkRes = await fetch(`${BACKEND_URL}/api/subscription`, {
-            headers: { 'Authorization': `Bearer ${freshToken}` },
-          });
-          const checkJson = await checkRes.json();
-
-          if (checkJson.success && (checkJson.data.plan === 'monthly' || checkJson.data.plan === 'yearly')) {
-            // Payment verified! Update state immediately
-            setState({
-              plan: checkJson.data.plan as PlanId,
-              status: checkJson.data.status,
-              scansUsed: checkJson.data.scansUsed,
-              scansLimit: checkJson.data.scansLimit,
-              expiresAt: checkJson.data.expiresAt,
-              subscribedAt: checkJson.data.subscribedAt,
-              loading: false,
-            });
-
-            const planLabel = checkJson.data.plan === 'yearly' ? 'Yearly Pro' : 'Monthly Pro';
-            const expiryDate = checkJson.data.expiresAt
-              ? new Date(checkJson.data.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-              : '';
-
-            Alert.alert(
-              'Thanks for Upgrading to Pro! 🎉',
-              `Welcome to ${planLabel}!\n\nYou now have access to:\n✅ Unlimited Card Scans\n✅ AI-Powered Chatbot\n✅ Excel & CSV Export\n✅ Cloud Backup & Sync${expiryDate ? `\n\nPlan valid until ${expiryDate}` : ''}`,
-              [{ text: 'Start Exploring!' }],
-            );
-            return true;
-          }
-        } catch {
-          // Polling error, continue to next attempt
-        }
-      }
-
-      // After all polls, do a final refresh and return false
-      await fetchSubscription();
-      return false;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '';
-      console.error('Subscribe error:', error);
-      Alert.alert('Payment Error', message || 'Something went wrong. Please try again.');
-      return false;
-    }
-  }, [fetchSubscription]);
+  const subscribe = useCallback(async (_planId: 'monthly' | 'yearly'): Promise<boolean> => {
+    // Payments are temporarily disabled for initial Play Store release.
+    // Will be re-enabled with Google Play Billing in a future update.
+    Alert.alert(
+      'Coming Soon',
+      'Pro plans are launching soon! You will be notified when premium features become available.',
+      [{ text: 'OK' }],
+    );
+    return false;
+  }, []);
 
   const isPro = state.plan === 'monthly' || state.plan === 'yearly';
 

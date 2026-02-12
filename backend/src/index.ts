@@ -81,6 +81,216 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ─── Privacy Policy (public, required by Google Play) ────────────────────────
+app.get('/privacy-policy', (c) => {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Captr</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;line-height:1.7}
+    .container{max-width:720px;margin:0 auto;padding:32px 20px}
+    h1{font-size:28px;font-weight:800;margin-bottom:4px}
+    .updated{color:#64748b;font-size:13px;margin-bottom:32px}
+    h2{font-size:18px;font-weight:700;margin:28px 0 12px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+    p{margin-bottom:12px;color:#334155;font-size:14px}
+    ul{margin:0 0 16px 20px}
+    li{margin-bottom:6px;color:#334155;font-size:14px}
+    .contact{background:#f1f5f9;border-radius:12px;padding:20px;margin-top:24px}
+    .contact a{color:#6366f1;text-decoration:none;font-weight:600}
+    .footer{text-align:center;margin-top:40px;color:#94a3b8;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: 12 February 2026</p>
+
+    <p>At Captr, we take your privacy seriously. This policy explains how we collect, use, and protect your personal information when you use our business card scanning application.</p>
+
+    <h2>Information We Collect</h2>
+    <p>We collect the following information to provide and improve our services:</p>
+    <ul>
+      <li><strong>Account Information:</strong> Name, email address, and password when you create an account, or Google profile data if you sign in with Google.</li>
+      <li><strong>Business Card Data:</strong> Images you scan and the extracted text information (names, phone numbers, emails, company details, addresses).</li>
+      <li><strong>Contact Data:</strong> Information stored in your saved contacts within the app.</li>
+      <li><strong>Usage Data:</strong> App usage patterns, scan counts, and feature usage to improve our service.</li>
+    </ul>
+
+    <h2>How We Use Your Data</h2>
+    <ul>
+      <li>To provide core functionality: scanning business cards, extracting contact details, and storing your contacts.</li>
+      <li>To process OCR (Optical Character Recognition) using AI services to accurately extract text from card images.</li>
+      <li>To power the AI chatbot assistant for Pro users (when available).</li>
+      <li>To manage your subscription and process payments (when available).</li>
+      <li>To send important updates about your account or service changes.</li>
+      <li>To improve and optimise the app experience based on aggregated, anonymised usage data.</li>
+    </ul>
+
+    <h2>Data Security</h2>
+    <p>We implement industry-standard security measures to protect your data:</p>
+    <ul>
+      <li>All data is transmitted over HTTPS with TLS encryption.</li>
+      <li>Authentication is handled securely through Firebase Authentication.</li>
+      <li>Your data is stored in Google Cloud (Firebase) with enterprise-grade security.</li>
+      <li>API keys and sensitive credentials are stored securely and never exposed to the client.</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>We use the following trusted third-party services:</p>
+    <ul>
+      <li><strong>Firebase (Google)</strong> — Authentication, database, and cloud storage.</li>
+      <li><strong>OpenAI</strong> — For OCR text extraction and AI chatbot functionality.</li>
+      <li><strong>Google Play Billing</strong> — For secure payment processing (when available).</li>
+      <li><strong>Expo / EAS</strong> — For app building and over-the-air updates.</li>
+    </ul>
+    <p>Each of these services has their own privacy policies. We recommend reviewing them for complete information about how they handle data.</p>
+
+    <h2>Data Retention &amp; Deletion</h2>
+    <ul>
+      <li>Your account data and contacts are retained as long as your account is active.</li>
+      <li>You can delete individual contacts at any time from within the app.</li>
+      <li>To delete your entire account and all associated data, contact us at support@captr.app.</li>
+      <li>Upon account deletion, all your personal data, scanned cards, and contacts will be permanently removed within 30 days.</li>
+    </ul>
+
+    <h2>Your Rights</h2>
+    <p>Under the Digital Personal Data Protection Act, 2023 (India), you have the right to:</p>
+    <ul>
+      <li>Access the personal data we hold about you.</li>
+      <li>Request correction of inaccurate personal data.</li>
+      <li>Request deletion of your personal data.</li>
+      <li>Withdraw consent for data processing at any time.</li>
+      <li>File a complaint with the Data Protection Board of India if you believe your rights have been violated.</li>
+    </ul>
+
+    <h2>Children's Privacy</h2>
+    <p>Captr is not intended for use by individuals under the age of 18. We do not knowingly collect personal data from children. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy within the app.</p>
+
+    <div class="contact">
+      <p><strong>Questions about your privacy?</strong></p>
+      <p>Contact us at <a href="mailto:support@captr.app">support@captr.app</a></p>
+      <p style="margin-top:8px;color:#64748b;font-size:13px;">Captr App | India</p>
+    </div>
+
+    <p class="footer">© 2026 Captr. All rights reserved.</p>
+  </div>
+</body>
+</html>`;
+  c.header('Content-Type', 'text/html');
+  return c.body(html);
+});
+
+// ─── Terms of Service (public) ───────────────────────────────────────────────
+app.get('/terms-of-service', (c) => {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service - Captr</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;line-height:1.7}
+    .container{max-width:720px;margin:0 auto;padding:32px 20px}
+    h1{font-size:28px;font-weight:800;margin-bottom:4px}
+    .updated{color:#64748b;font-size:13px;margin-bottom:32px}
+    h2{font-size:18px;font-weight:700;margin:28px 0 12px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+    p{margin-bottom:12px;color:#334155;font-size:14px}
+    ul{margin:0 0 16px 20px}
+    li{margin-bottom:6px;color:#334155;font-size:14px}
+    .contact{background:#f1f5f9;border-radius:12px;padding:20px;margin-top:24px}
+    .contact a{color:#6366f1;text-decoration:none;font-weight:600}
+    .footer{text-align:center;margin-top:40px;color:#94a3b8;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Terms of Service</h1>
+    <p class="updated">Last updated: 12 February 2026</p>
+
+    <p>By downloading, installing, or using Captr, you agree to be bound by these Terms of Service. Please read them carefully before using the app.</p>
+
+    <h2>Acceptance of Terms</h2>
+    <p>By creating an account or using Captr, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.</p>
+    <p>If you do not agree to these terms, please do not use the app. You must be at least 18 years old to use Captr.</p>
+
+    <h2>Service Description</h2>
+    <p>Captr provides the following services:</p>
+    <ul>
+      <li>Business card scanning using AI-powered OCR (Optical Character Recognition).</li>
+      <li>Automatic extraction and organisation of contact information.</li>
+      <li>Contact management and storage.</li>
+      <li>AI-powered chatbot assistant (Pro feature — coming soon).</li>
+      <li>Export functionality for contacts (Pro feature — coming soon).</li>
+      <li>Cloud backup and synchronisation.</li>
+    </ul>
+
+    <h2>User Responsibilities</h2>
+    <p>When using Captr, you agree to:</p>
+    <ul>
+      <li>Provide accurate and complete information when creating your account.</li>
+      <li>Keep your account credentials secure and not share them with others.</li>
+      <li>Only scan business cards that you have obtained legitimately.</li>
+      <li>Not use the app for any illegal or unauthorised purpose.</li>
+      <li>Not attempt to reverse-engineer, modify, or interfere with the app's operation.</li>
+      <li>Comply with all applicable local, state, national, and international laws.</li>
+    </ul>
+
+    <h2>Subscriptions &amp; Payments</h2>
+    <ul>
+      <li>Captr offers a free tier with limited features. Pro subscriptions with full access will be available in a future update.</li>
+      <li>When available, Pro subscriptions will be offered as Monthly and Yearly plans.</li>
+      <li>All payments will be processed securely through Google Play Billing. We do not store your payment details.</li>
+      <li>Subscriptions will provide access for the purchased duration.</li>
+      <li>Refund requests can be made within 7 days of purchase by contacting support@captr.app. Refunds are processed at our discretion.</li>
+      <li>We reserve the right to change pricing with prior notice to existing subscribers.</li>
+    </ul>
+
+    <h2>Prohibited Activities</h2>
+    <p>You may not use Captr to:</p>
+    <ul>
+      <li>Collect personal data without the knowledge or consent of the data subject.</li>
+      <li>Send unsolicited messages (spam) using extracted contact information.</li>
+      <li>Engage in data harvesting, scraping, or bulk collection of business card data.</li>
+      <li>Upload malicious content, viruses, or harmful code.</li>
+      <li>Impersonate another person or entity.</li>
+      <li>Violate any applicable data protection laws including the DPDP Act, 2023.</li>
+    </ul>
+
+    <h2>Limitation of Liability</h2>
+    <ul>
+      <li>Captr is provided 'as is' without warranties of any kind, express or implied.</li>
+      <li>We do not guarantee 100% accuracy of OCR text extraction. Always verify extracted information.</li>
+      <li>We are not liable for any indirect, incidental, or consequential damages arising from your use of the app.</li>
+      <li>Our total liability is limited to the amount you paid for the service in the preceding 12 months.</li>
+      <li>We reserve the right to suspend or terminate accounts that violate these terms.</li>
+    </ul>
+
+    <h2>Governing Law</h2>
+    <p>These Terms of Service are governed by and construed in accordance with the laws of India. Any disputes arising from these terms shall be subject to the exclusive jurisdiction of the courts in India.</p>
+    <p>If any provision of these terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+
+    <div class="contact">
+      <p><strong>Questions about these terms?</strong></p>
+      <p>Contact us at <a href="mailto:support@captr.app">support@captr.app</a></p>
+      <p style="margin-top:8px;color:#64748b;font-size:13px;">Captr App | India</p>
+    </div>
+
+    <p class="footer">© 2026 Captr. All rights reserved.</p>
+  </div>
+</body>
+</html>`;
+  c.header('Content-Type', 'text/html');
+  return c.body(html);
+});
+
 // ─── Test Payment Page (development only) ────────────────────────────────────
 app.get('/test-payment', async (c) => {
   try {
@@ -492,7 +702,7 @@ app.get('/api/subscription', authMiddleware, async (c) => {
         scansUsed: usageDoc.exists ? (usageDoc.data()?.count || 0) : 0,
         scansLimit: isExpired ? 10 : (sub.plan === 'free' ? 10 : -1),
         expiresAt: sub.expires_at || null,
-        razorpayPaymentId: sub.razorpay_payment_id || null,
+        paymentId: sub.razorpay_payment_id || sub.payment_id || null,
         subscribedAt: sub.subscribed_at || null,
       },
     });
@@ -671,8 +881,8 @@ app.get('/api/billing', authMiddleware, async (c) => {
       status: doc.data().status,
       amount_paid: doc.data().amount_paid,
       currency: doc.data().currency || 'INR',
-      razorpay_order_id: doc.data().razorpay_order_id,
-      razorpay_payment_id: doc.data().razorpay_payment_id,
+      order_id: doc.data().razorpay_order_id || doc.data().order_id,
+      payment_id: doc.data().razorpay_payment_id || doc.data().payment_id,
       subscribed_at: doc.data().subscribed_at,
       expires_at: doc.data().expires_at,
       created_at: doc.data().created_at,
@@ -781,7 +991,7 @@ app.get('/api/billing/:id/invoice', async (c) => {
     </div>
     <div class="meta-block">
       <h3>Payment ID</h3>
-      <p style="font-size:12px;">${p.razorpay_payment_id || '—'}</p>
+      <p style="font-size:12px;">${p.razorpay_payment_id || p.payment_id || '—'}</p>
     </div>
   </div>
   <div class="items">
@@ -804,7 +1014,7 @@ app.get('/api/billing/:id/invoice', async (c) => {
     </table>
   </div>
   <div class="footer">
-    <p>Payment processed securely via Razorpay &bull; Order ID: ${p.razorpay_order_id || '—'}</p>
+    <p>Payment processed securely &bull; Order ID: ${p.razorpay_order_id || p.order_id || '—'}</p>
     <p style="margin-top:6px;">Thank you for subscribing to Captr Pro!</p>
   </div>
 </div>

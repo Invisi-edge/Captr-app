@@ -10,51 +10,21 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Pressable,
-  Platform,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown,
   FadeIn,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
 } from 'react-native-reanimated';
 
 export default function PlansScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { plan: currentPlan, subscribe, isPro } = useSubscription();
+  const { plan: currentPlan, isPro } = useSubscription();
   const c = premiumColors(isDark);
 
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(currentPlan === 'free' ? 'yearly' : currentPlan);
-  const [purchasing, setPurchasing] = useState(false);
-
-  const handleSubscribe = async (planId: 'monthly' | 'yearly') => {
-    setPurchasing(true);
-    try {
-      const success = await subscribe(planId);
-      if (success) {
-        // Redirect to home after successful upgrade
-        router.replace('/(tabs)');
-      } else {
-        // Payment failed or was cancelled - offer retry
-        Alert.alert(
-          'Payment Incomplete',
-          'Your payment was not completed. Would you like to try again?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Try Again', onPress: () => handleSubscribe(planId) },
-          ],
-        );
-      }
-    } finally {
-      setPurchasing(false);
-    }
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
@@ -139,16 +109,14 @@ export default function PlansScreen() {
                 isCurrent={isCurrent}
                 isHighlighted={isHighlighted}
                 isPro={isPro}
-                purchasing={purchasing}
                 colors={c}
                 onSelect={() => setSelectedPlan(plan.id)}
-                onSubscribe={() => plan.id !== 'free' && handleSubscribe(plan.id as 'monthly' | 'yearly')}
               />
             </Animated.View>
           );
         })}
 
-        {/* Trust badges */}
+        {/* Info note */}
         <Animated.View
           entering={FadeInDown.delay(600).duration(600)}
           style={{ paddingHorizontal: spacing['2xl'], marginTop: spacing.lg }}
@@ -156,12 +124,12 @@ export default function PlansScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
             <Shield size={14} color={c.success} />
             <Text style={{ fontSize: 12, color: c.textSecondary, fontWeight: '600' }}>
-              Secured by Razorpay
+              Pro Plans Launching Soon
             </Text>
           </View>
           <Text style={{ fontSize: 11, color: c.textMuted, textAlign: 'center', lineHeight: 16 }}>
-            Payments are processed securely via Razorpay.{'\n'}
-            Cancel anytime. No hidden charges.
+            Premium features are coming soon.{'\n'}
+            You'll be notified when they become available.
           </Text>
         </Animated.View>
       </ScrollView>
@@ -177,17 +145,11 @@ interface PlanCardProps {
   isCurrent: boolean;
   isHighlighted: boolean;
   isPro: boolean;
-  purchasing: boolean;
   colors: ReturnType<typeof premiumColors>;
   onSelect: () => void;
-  onSubscribe: () => void;
 }
 
-function PlanCard({ plan, isSelected, isCurrent, isHighlighted, isPro, purchasing, colors: c, onSelect, onSubscribe }: PlanCardProps) {
-  const btnScale = useSharedValue(1);
-  const btnStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: btnScale.value }],
-  }));
+function PlanCard({ plan, isSelected, isCurrent, isHighlighted, isPro, colors: c, onSelect }: PlanCardProps) {
 
   const isFree = plan.id === 'free';
   const borderColor = isSelected
@@ -318,36 +280,22 @@ function PlanCard({ plan, isSelected, isCurrent, isHighlighted, isPro, purchasin
             </Text>
           </View>
         ) : (
-          <Animated.View style={btnStyle}>
-            <TouchableOpacity
-              onPress={onSubscribe}
-              onPressIn={() => { btnScale.value = withSpring(0.96); }}
-              onPressOut={() => { btnScale.value = withSpring(1); }}
-              disabled={purchasing}
-              activeOpacity={0.85}
-              style={{
-                backgroundColor: isHighlighted ? '#10b981' : c.accent,
-                borderRadius: radius.xl,
-                paddingVertical: 14,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row',
-                gap: 8,
-                ...c.shadow.glow(isHighlighted ? '#10b981' : c.accent),
-              }}
-            >
-              {purchasing ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Sparkles size={16} color="#fff" />
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>
-                    Get Started
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
+          <View
+            style={{
+              backgroundColor: isHighlighted ? '#10b98140' : `${c.accent}40`,
+              borderRadius: radius.xl,
+              paddingVertical: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 8,
+            }}
+          >
+            <Sparkles size={16} color={isHighlighted ? '#10b981' : c.accent} />
+            <Text style={{ fontSize: 14, fontWeight: '700', color: isHighlighted ? '#10b981' : c.accent }}>
+              Coming Soon
+            </Text>
+          </View>
         )}
       </View>
     </Pressable>

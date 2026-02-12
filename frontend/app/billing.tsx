@@ -38,8 +38,8 @@ interface Payment {
   status: string;
   amount_paid: number;
   currency: string;
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
+  order_id: string;
+  payment_id: string;
   subscribed_at: string;
   expires_at: string;
   created_at: string;
@@ -69,7 +69,7 @@ export default function BillingScreen() {
         setPayments(json.data);
       }
     } catch (error) {
-      console.error('Billing fetch error:', error);
+      // Billing fetch error silenced for production
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -239,23 +239,22 @@ export default function BillingScreen() {
             </View>
 
             {!isPro && (
-              <TouchableOpacity
-                onPress={() => router.push('/plans')}
-                activeOpacity={0.85}
+              <View
                 style={{
-                  backgroundColor: c.accent,
+                  backgroundColor: `${c.accent}20`,
                   borderRadius: radius.lg,
                   paddingVertical: 12,
                   alignItems: 'center',
                   flexDirection: 'row',
                   justifyContent: 'center',
                   gap: 8,
-                  ...c.shadow.glow(c.accent),
+                  borderWidth: 1,
+                  borderColor: `${c.accent}40`,
                 }}
               >
-                <Crown size={16} color="#fff" />
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Upgrade to Pro</Text>
-              </TouchableOpacity>
+                <Crown size={16} color={c.accent} />
+                <Text style={{ fontSize: 14, fontWeight: '700', color: c.accent }}>Pro Plans Coming Soon</Text>
+              </View>
             )}
           </View>
         </Animated.View>
@@ -402,14 +401,14 @@ export default function BillingScreen() {
                   gap: 2,
                 }}
               >
-                {payment.razorpay_order_id && (
+                {payment.order_id && (
                   <Text style={{ fontSize: 10, color: c.textMuted, fontWeight: '500' }} numberOfLines={1}>
-                    Order: {payment.razorpay_order_id}
+                    Order: {payment.order_id}
                   </Text>
                 )}
-                {payment.razorpay_payment_id && (
+                {payment.payment_id && (
                   <Text style={{ fontSize: 10, color: c.textMuted, fontWeight: '500' }} numberOfLines={1}>
-                    Payment: {payment.razorpay_payment_id}
+                    Payment: {payment.payment_id}
                   </Text>
                 )}
               </View>

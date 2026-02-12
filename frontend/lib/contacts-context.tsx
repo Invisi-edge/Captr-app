@@ -62,7 +62,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       const json = await res.json();
       if (json.success) setCards(json.data);
     } catch (e) {
-      console.error('fetchCards error:', e);
+      if (__DEV__) console.warn('fetchCards error:', e);
     } finally {
       setLoading(false);
     }
@@ -98,25 +98,62 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
     [cards],
   );
 
+  const uploadImage = useCallback(async (base64Data: string, filename: string): Promise<string | null> => {
+    try {
+      const headers = await getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      // Strip data URI prefix if present
+      const raw = base64Data.includes('base64,') ? base64Data.split('base64,')[1] : base64Data;
+      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ base64: raw, filename }),
+      });
+      const json = await res.json();
+      if (json.success && json.url) return json.url;
+    } catch {
+      // Upload failed — will fall back to empty string
+    }
+    return null;
+  }, []);
+
   const addCard = useCallback(async (card: Partial<Card>) => {
     try {
+      // Upload images to Firebase Storage first (Firestore has 1MB doc limit)
+      let frontUrl = card.front_image_url || '';
+      let backUrl = card.back_image_url || '';
+
+      if (frontUrl && (frontUrl.startsWith('data:') || frontUrl.length > 5000)) {
+        const uploaded = await uploadImage(frontUrl, 'front.jpg');
+        frontUrl = uploaded || '';
+      }
+      if (backUrl && (backUrl.startsWith('data:') || backUrl.length > 5000)) {
+        const uploaded = await uploadImage(backUrl, 'back.jpg');
+        backUrl = uploaded || '';
+      }
+
       const headers = await getAuthHeaders();
       headers['Content-Type'] = 'application/json';
       const res = await fetch(`${BACKEND_URL}/api/cards`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(card),
+        body: JSON.stringify({
+          ...card,
+          front_image_url: frontUrl,
+          back_image_url: backUrl,
+        }),
       });
       const json = await res.json();
       if (json.success) {
         setCards((prev) => [json.data, ...prev]);
         return json.data;
       }
+      if (__DEV__) console.warn('addCard server error:', json.error);
     } catch (e) {
-      console.error('addCard error:', e);
+      if (__DEV__) console.warn('addCard error:', e);
     }
     return null;
-  }, []);
+  }, [uploadImage]);
 
   const updateCard = useCallback(async (id: string, data: Partial<Card>) => {
     try {
@@ -133,7 +170,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
         return json.data;
       }
     } catch (e) {
-      console.error('updateCard error:', e);
+      if (__DEV__) console.warn('updateCard error:', e);
     }
     return null;
   }, []);
@@ -151,7 +188,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
     } catch (e) {
-      console.error('deleteCard error:', e);
+      if (__DEV__) console.warn('deleteCard error:', e);
     }
     return false;
   }, []);

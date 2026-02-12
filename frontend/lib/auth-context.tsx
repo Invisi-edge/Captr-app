@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         Alert.alert('Error', result.error?.message || 'Google sign-in failed');
       }
     } catch (err: unknown) {
-      console.error('Google sign-in error:', err);
+      // Google sign-in error silenced for production
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       Alert.alert('Error', errorMessage || 'Google sign-in failed');
     }

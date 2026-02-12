@@ -23,7 +23,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
@@ -92,7 +91,6 @@ export default function HomeScreen() {
     },
   ];
 
-  const recentCard = cards[0];
   const hasCards = cards.length > 0;
 
   // Hero button scale-on-press animation

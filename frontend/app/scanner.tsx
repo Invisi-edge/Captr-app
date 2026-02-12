@@ -265,11 +265,11 @@ export default function ScanScreen() {
         Vibration.vibrate(100);
         router.replace(`/card/${card.id}`);
       } else {
-        Alert.alert('Error', 'Failed to save card');
+        Alert.alert('Save Failed', 'Could not save the card. Please check your internet connection and try again.');
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'An error occurred';
-      Alert.alert('Error', message);
+      Alert.alert('Save Failed', message);
     } finally {
       setProcessing(false);
     }

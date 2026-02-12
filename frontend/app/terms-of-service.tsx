@@ -270,10 +270,10 @@ export default function TermsOfServiceScreen() {
             title="Subscriptions & Payments"
             colors={colors}
           >
-            <BulletPoint text="Captr offers a free tier with limited features and a Pro subscription with full access." colors={colors} />
-            <BulletPoint text="Pro subscriptions are available as Monthly (₹99/month) or Yearly (₹799/year) plans." colors={colors} />
-            <BulletPoint text="All payments are processed securely through Razorpay. We do not store your payment details." colors={colors} />
-            <BulletPoint text="Subscriptions provide access for the purchased duration and do not auto-renew." colors={colors} />
+            <BulletPoint text="Captr offers a free tier with limited features. Pro subscriptions with full access will be available in a future update." colors={colors} />
+            <BulletPoint text="When available, Pro subscriptions will be offered as Monthly and Yearly plans." colors={colors} />
+            <BulletPoint text="All payments will be processed securely through our payment provider. We do not store your payment details." colors={colors} />
+            <BulletPoint text="Subscriptions will provide access for the purchased duration." colors={colors} />
             <BulletPoint text="Refund requests can be made within 7 days of purchase by contacting support@captr.app. Refunds are processed at our discretion." colors={colors} />
             <BulletPoint text="We reserve the right to change pricing with prior notice to existing subscribers." colors={colors} />
           </PolicySection>

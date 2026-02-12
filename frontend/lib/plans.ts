@@ -9,7 +9,7 @@ export type PlanId = 'free' | 'monthly' | 'yearly';
 export interface Plan {
   id: PlanId;
   name: string;
-  price: number; // in INR (paise for Razorpay = price * 100)
+  price: number; // in INR
   period: string;
   badge?: string;
   savingsLabel?: string;

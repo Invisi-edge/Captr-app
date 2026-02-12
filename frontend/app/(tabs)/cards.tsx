@@ -4,7 +4,7 @@ import { useSubscription } from '@/lib/subscription-context';
 import { BACKEND_URL } from '@/lib/api';
 import { formatIndianPhone } from '@/lib/locale';
 import { useRouter } from 'expo-router';
-import { Search, Download, Trash2, ChevronRight, Users, FileSpreadsheet, FileText } from 'lucide-react-native';
+import { Search, Trash2, ChevronRight, Users, FileSpreadsheet, FileText } from 'lucide-react-native';
 import { useTheme } from '@/lib/theme-context';
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -253,11 +253,8 @@ export default function CardsScreen() {
                 if (!canExportExcel()) {
                   Alert.alert(
                     'Pro Feature',
-                    'Excel export is available on paid plans. CSV export is free!',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'View Plans', onPress: () => router.push('/plans') },
-                    ],
+                    'Excel export will be available with Pro plans (coming soon). CSV export is free!',
+                    [{ text: 'OK' }],
                   );
                   return;
                 }

@@ -1,7 +1,6 @@
 import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/lib/subscription-context';
 import { premiumColors, radius, spacing } from '@/lib/premium-theme';
-import { formatDate } from '@/lib/locale';
 import { useRouter } from 'expo-router';
 import {
   User,
@@ -12,7 +11,6 @@ import {
   ChevronRight,
   LogOut,
   Shield,
-  Bell,
   Moon,
   HelpCircle,
   Check,
@@ -323,7 +321,7 @@ export default function SettingsScreen() {
               </View>
             )}
 
-            {/* Free user: upgrade CTA */}
+            {/* Free user: coming soon CTA */}
             {!isPro && (
               <View
                 style={{
@@ -337,7 +335,7 @@ export default function SettingsScreen() {
               >
                 <Zap size={14} color={colors.accent} />
                 <Text style={{ fontSize: 12, color: colors.accent, fontWeight: '600', flex: 1 }}>
-                  Upgrade for unlimited scans, AI chat & Excel export
+                  Pro plans coming soon — unlimited scans, AI chat & more
                 </Text>
                 <ChevronRight size={14} color={colors.accent} />
               </View>
