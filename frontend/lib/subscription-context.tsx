@@ -46,8 +46,14 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
   const user = auth.currentUser;
   if (user) {
-    const token = await user.getIdToken();
-    headers['Authorization'] = `Bearer ${token}`;
+    try {
+      const token = await user.getIdToken(true);
+      headers['Authorization'] = `Bearer ${token}`;
+    } catch {
+      // Fallback to cached token
+      const token = await user.getIdToken(false);
+      headers['Authorization'] = `Bearer ${token}`;
+    }
   }
   return headers;
 }
@@ -167,10 +173,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
       let token: string;
       try {
-        token = await user.getIdToken(true); // force refresh
+        // Try force refresh first
+        token = await user.getIdToken(true);
       } catch {
-        Alert.alert('Auth Error', 'Could not authenticate. Please sign out and sign in again.');
-        return false;
+        try {
+          // Fallback: use cached token
+          token = await user.getIdToken(false);
+        } catch {
+          Alert.alert('Auth Error', 'Could not authenticate. Please sign out and sign in again.');
+          return false;
+        }
       }
 
       // Step 1: Create order on backend
@@ -239,15 +251,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
               loading: false,
             });
 
-            const planLabel = checkJson.data.plan === 'yearly' ? 'Yearly' : 'Monthly';
-            const expiryMsg = checkJson.data.expiresAt
-              ? `\nValid until ${new Date(checkJson.data.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`
+            const planLabel = checkJson.data.plan === 'yearly' ? 'Yearly Pro' : 'Monthly Pro';
+            const expiryDate = checkJson.data.expiresAt
+              ? new Date(checkJson.data.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
               : '';
 
             Alert.alert(
-              'Payment Successful! 🎉',
-              `Your ${planLabel} Pro plan is now active. Enjoy unlimited scans, AI chat, and more!${expiryMsg}`,
-              [{ text: 'Great!' }],
+              'Thanks for Upgrading to Pro! 🎉',
+              `Welcome to ${planLabel}!\n\nYou now have access to:\n✅ Unlimited Card Scans\n✅ AI-Powered Chatbot\n✅ Excel & CSV Export\n✅ Cloud Backup & Sync${expiryDate ? `\n\nPlan valid until ${expiryDate}` : ''}`,
+              [{ text: 'Start Exploring!' }],
             );
             return true;
           }

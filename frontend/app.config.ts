@@ -50,6 +50,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     output: 'static',
     favicon: './assets/images/favicon.png',
   },
+  updates: {
+    url: 'https://u.expo.dev/6c5caa68-534c-472c-8ded-f853feea19c4',
+  },
+  runtimeVersion: {
+    policy: 'appVersion' as const,
+  },
   plugins: [
     'expo-router',
     [
@@ -77,9 +83,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   experiments: {
     typedRoutes: true,
-  },
-  locales: {
-    en: './locales/en.json',
   },
   extra: {
     eas: {

@@ -14,6 +14,11 @@
       "credentialsSource": "local",
       "android": {
         "buildType": "apk"
+      },
+      "node": "20.18.0",
+      "env": {
+        "EAS_BUILD_RUNNER": "eas-build",
+        "EAS_NO_BUN": "1"
       }
     },
     "production": {
@@ -21,6 +26,11 @@
       "credentialsSource": "local",
       "android": {
         "buildType": "app-bundle"
+      },
+      "node": "20.18.0",
+      "env": {
+        "EAS_BUILD_RUNNER": "eas-build",
+        "EAS_NO_BUN": "1"
       }
     }
   },

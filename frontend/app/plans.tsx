@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Pressable,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -37,7 +38,18 @@ export default function PlansScreen() {
     try {
       const success = await subscribe(planId);
       if (success) {
-        router.back();
+        // Redirect to home after successful upgrade
+        router.replace('/(tabs)');
+      } else {
+        // Payment failed or was cancelled - offer retry
+        Alert.alert(
+          'Payment Incomplete',
+          'Your payment was not completed. Would you like to try again?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Try Again', onPress: () => handleSubscribe(planId) },
+          ],
+        );
       }
     } finally {
       setPurchasing(false);
