@@ -7,7 +7,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X, RotateCcw, Check, Camera, ImageIcon, Sparkles } from 'lucide-react-native';
 import { useTheme } from '@/lib/theme-context';
-import { useSubscription } from '@/lib/subscription-context';
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -42,7 +41,6 @@ export default function ScanScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const { addCard, findDuplicate } = useContacts();
-  const { canScan, recordScan, scansUsed, scansLimit, isPro } = useSubscription();
 
   const colors = premiumColors(isDark);
 
@@ -202,13 +200,6 @@ export default function ScanScreen() {
       const backBase64 = backImage?.includes('base64,')
         ? backImage.split('base64,')[1]
         : back || '';
-
-      const allowed = await recordScan();
-      if (!allowed) {
-        setProcessing(false);
-        setStep('capture-front');
-        return;
-      }
 
       const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`${BACKEND_URL}/api/scan`, {
@@ -941,11 +932,6 @@ export default function ScanScreen() {
             <View style={{ width: 46 }} />
           )}
         </View>
-        {!isPro && scansLimit !== -1 && (
-          <Text style={{ color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
-            {scansUsed}/{scansLimit} free scans used
-          </Text>
-        )}
       </View>
     </SafeAreaView>
   );

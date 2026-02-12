@@ -1,6 +1,5 @@
 import { useAuth } from '@/lib/auth-context';
 import { useContacts, Card } from '@/lib/contacts-context';
-import { useSubscription } from '@/lib/subscription-context';
 import { BACKEND_URL } from '@/lib/api';
 import { formatIndianPhone } from '@/lib/locale';
 import { useRouter } from 'expo-router';
@@ -157,7 +156,6 @@ function AnimatedContactCard({
 export default function CardsScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { canExportExcel, isPro } = useSubscription();
   const { cards, loading, fetchCards, deleteCard } = useContacts();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -249,17 +247,7 @@ export default function CardsScreen() {
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              onPress={() => {
-                if (!canExportExcel()) {
-                  Alert.alert(
-                    'Pro Feature',
-                    'Excel export will be available with Pro plans (coming soon). CSV export is free!',
-                    [{ text: 'OK' }],
-                  );
-                  return;
-                }
-                handleExport('xlsx');
-              }}
+              onPress={() => handleExport('xlsx')}
               disabled={exporting || cards.length === 0}
               activeOpacity={0.7}
               style={{

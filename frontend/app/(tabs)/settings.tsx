@@ -1,5 +1,4 @@
 import { useAuth } from '@/lib/auth-context';
-import { useSubscription } from '@/lib/subscription-context';
 import { premiumColors, radius, spacing } from '@/lib/premium-theme';
 import { useRouter } from 'expo-router';
 import {
@@ -15,9 +14,6 @@ import {
   HelpCircle,
   Check,
   X,
-  Crown,
-  Zap,
-  Receipt,
   FileText,
 } from 'lucide-react-native';
 import { useTheme } from '@/lib/theme-context';
@@ -40,7 +36,6 @@ export default function SettingsScreen() {
   const { isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const { user, signOut, updateUserProfile, changePassword } = useAuth();
-  const { plan, isPro, scansUsed, scansLimit, expiresAt, subscribedAt } = useSubscription();
 
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
@@ -185,164 +180,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Subscription Card */}
-        <View style={{ paddingHorizontal: spacing['2xl'], marginBottom: spacing['2xl'] }}>
-          <Text
-            style={{
-              color: colors.textMuted,
-              fontSize: 11,
-              fontWeight: '700',
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-              marginBottom: spacing.md,
-            }}
-          >
-            Subscription
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push('/plans')}
-            activeOpacity={0.85}
-            style={{
-              backgroundColor: isPro ? colors.accentDark : colors.cardBg,
-              borderColor: isPro ? colors.accent : colors.cardBorder,
-              borderWidth: 1,
-              borderRadius: radius.xl,
-              padding: spacing.xl,
-              ...colors.shadow.md,
-            }}
-          >
-            {/* Plan header row */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: isPro ? 14 : 10 }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: isPro ? 'rgba(255,255,255,0.15)' : colors.accentSoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 12,
-                }}
-              >
-                {isPro ? <Crown size={18} color="#fff" /> : <Zap size={18} color={colors.accent} />}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: isPro ? '#fff' : colors.text }}>
-                  {plan === 'yearly' ? 'Yearly Pro' : plan === 'monthly' ? 'Monthly Pro' : 'Free Plan'}
-                </Text>
-                {!isPro && (
-                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
-                    {scansUsed}/{scansLimit} scans used this month
-                  </Text>
-                )}
-              </View>
-              <View
-                style={{
-                  backgroundColor: isPro ? 'rgba(16,185,129,0.25)' : colors.accentSoft,
-                  paddingHorizontal: 12,
-                  paddingVertical: 5,
-                  borderRadius: radius.full,
-                  borderWidth: 1,
-                  borderColor: isPro ? 'rgba(16,185,129,0.4)' : 'transparent',
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: '700',
-                    color: isPro ? '#10b981' : colors.accent,
-                  }}
-                >
-                  {isPro ? 'Active' : 'Upgrade'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Pro details: expiry, subscribed since, features */}
-            {isPro && (
-              <View
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                  borderRadius: radius.lg,
-                  padding: spacing.md,
-                  gap: 8,
-                }}
-              >
-                {expiresAt && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 3,
-                        backgroundColor: new Date(expiresAt) > new Date() ? '#10b981' : '#f87171',
-                      }}
-                    />
-                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>
-                      {new Date(expiresAt) > new Date() ? 'Valid until' : 'Expired on'}{' '}
-                      {new Date(expiresAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </View>
-                )}
-                {subscribedAt && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)' }} />
-                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '500' }}>
-                      Subscribed on{' '}
-                      {new Date(subscribedAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </View>
-                )}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                  {['Unlimited Scans', 'AI Chat', 'Excel Export', 'Cloud Sync'].map((feature) => (
-                    <View
-                      key={feature}
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        borderRadius: radius.md,
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                      }}
-                    >
-                      <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: '600' }}>
-                        ✓ {feature}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Free user: coming soon CTA */}
-            {!isPro && (
-              <View
-                style={{
-                  backgroundColor: colors.accentSoft,
-                  borderRadius: radius.lg,
-                  padding: spacing.md,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <Zap size={14} color={colors.accent} />
-                <Text style={{ fontSize: 12, color: colors.accent, fontWeight: '600', flex: 1 }}>
-                  Pro plans coming soon — unlimited scans, AI chat & more
-                </Text>
-                <ChevronRight size={14} color={colors.accent} />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
         {/* Account Section */}
         <View style={{ paddingHorizontal: spacing['2xl'], marginBottom: spacing['2xl'] }}>
           <Text
@@ -401,17 +238,6 @@ export default function SettingsScreen() {
               isDark={isDark}
               showBorder={!isGoogleUser}
               disabled
-            />
-            <SettingsRow
-              icon={<Receipt size={18} color={colors.success} />}
-              iconBg={colors.successSoft}
-              iconAccent={colors.success}
-              title="Billing & Invoices"
-              subtitle={isPro ? 'View payments & download invoices' : 'No payments yet'}
-              onPress={() => router.push('/billing')}
-              colors={colors}
-              isDark={isDark}
-              showBorder
             />
           </View>
         </View>

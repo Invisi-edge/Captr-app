@@ -1,9 +1,7 @@
 import { BACKEND_URL } from '@/lib/api';
 import { auth } from '@/lib/firebase';
-import { useSubscription } from '@/lib/subscription-context';
 import { useTheme } from '@/lib/theme-context';
-import { useRouter } from 'expo-router';
-import { Send, User, Trash2, Sparkles, Crown, Lock } from 'lucide-react-native';
+import { Send, User, Trash2, Sparkles, Crown } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
   View,
@@ -13,9 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Pressable,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { premiumColors, radius, spacing } from '@/lib/premium-theme';
@@ -95,8 +91,6 @@ interface Message {
 
 export default function ChatScreen() {
   const { isDark } = useTheme();
-  const router = useRouter();
-  const { canUseAI, isPro } = useSubscription();
   const c = premiumColors(isDark);
 
   const [messages, setMessages] = useState<Message[]>([
@@ -118,14 +112,6 @@ export default function ChatScreen() {
   }));
 
   const sendMessage = async () => {
-    if (!canUseAI()) {
-      Alert.alert(
-        'Pro Feature',
-        'AI Assistant will be available with Pro plans. Coming soon!',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
     const text = input.trim();
     if (!text || sending) return;
 
@@ -254,164 +240,6 @@ export default function ChatScreen() {
       </Animated.View>
     );
   };
-
-  // ─── Pro Gate: Show upgrade screen for free users ───
-  if (!isPro) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-        {/* Header (same as pro) */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: spacing['2xl'],
-            paddingVertical: spacing.lg,
-            borderBottomWidth: 1,
-            borderBottomColor: c.cardBorderSubtle,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: radius.lg,
-                backgroundColor: c.accentSoft,
-                borderWidth: 1,
-                borderColor: c.glassBorder,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Sparkles size={18} color={c.accent} strokeWidth={2} />
-            </View>
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: c.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }}>
-                  AI Assistant
-                </Text>
-                <View
-                  style={{
-                    backgroundColor: '#f59e0b20',
-                    borderWidth: 1,
-                    borderColor: '#f59e0b40',
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: radius.md,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <Crown size={10} color="#f59e0b" />
-                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#f59e0b', letterSpacing: 0.5 }}>PRO</Text>
-                </View>
-              </View>
-              <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '500', marginTop: 1 }}>
-                Powered by GPT-4o
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Upgrade Gate Content */}
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing['3xl'] }}>
-          {/* Lock icon */}
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 24,
-              backgroundColor: c.accentSoft,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: spacing['2xl'],
-              borderWidth: 1,
-              borderColor: c.glassBorder,
-            }}
-          >
-            <Lock size={32} color={c.accent} />
-          </View>
-
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: '800',
-              color: c.text,
-              textAlign: 'center',
-              letterSpacing: -0.5,
-              marginBottom: 8,
-            }}
-          >
-            Unlock AI Assistant
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              color: c.textSecondary,
-              textAlign: 'center',
-              lineHeight: 21,
-              marginBottom: spacing['2xl'],
-              maxWidth: 280,
-            }}
-          >
-            Get instant answers about your contacts, find people by company or role, and get networking insights.
-          </Text>
-
-          {/* Feature list */}
-          <View style={{ alignSelf: 'stretch', gap: 12, marginBottom: spacing['3xl'] }}>
-            {[
-              'Ask questions about your contacts',
-              'Find people by company, role, or city',
-              'Get networking suggestions',
-              'Summarise contact information',
-            ].map((feature, i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 8,
-                    backgroundColor: c.successSoft,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Sparkles size={12} color={c.success} />
-                </View>
-                <Text style={{ fontSize: 13.5, color: c.text, fontWeight: '500', flex: 1 }}>{feature}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Coming Soon badge */}
-          <View
-            style={{
-              backgroundColor: `${c.accent}20`,
-              borderRadius: radius.xl,
-              paddingVertical: 16,
-              paddingHorizontal: 32,
-              alignSelf: 'stretch',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              borderWidth: 1,
-              borderColor: `${c.accent}40`,
-            }}
-          >
-            <Crown size={18} color={c.accent} />
-            <Text style={{ fontSize: 15, fontWeight: '700', color: c.accent }}>Coming Soon</Text>
-          </View>
-
-          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 12, textAlign: 'center' }}>
-            Pro plans are launching soon!
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
