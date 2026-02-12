@@ -17,6 +17,32 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Alert } from 'react-native';
 
+// Retry wrapper for Firebase auth calls that may fail due to network issues
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 2,
+  delayMs = 1500,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastError = err;
+      const code = err && typeof err === 'object' && 'code' in err
+        ? (err as { code: string }).code
+        : '';
+      // Only retry on network errors
+      if (code === 'auth/network-request-failed' && attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
@@ -55,13 +81,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    await withRetry(() => signInWithEmailAndPassword(auth, email, password));
   };
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
+    const result = await withRetry(() => createUserWithEmailAndPassword(auth, email, password));
     if (displayName && result.user) {
-      await updateProfile(result.user, { displayName });
+      await withRetry(() => updateProfile(result.user, { displayName }));
     }
   };
 
@@ -99,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.type === 'success' && result.params?.id_token) {
         const credential = GoogleAuthProvider.credential(result.params.id_token);
-        await signInWithCredential(auth, credential);
+        await withRetry(() => signInWithCredential(auth, credential));
       } else if (result.type === 'error') {
         Alert.alert('Error', result.error?.message || 'Google sign-in failed');
       }

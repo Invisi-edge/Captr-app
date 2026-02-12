@@ -69,6 +69,8 @@ export default function SignUpScreen() {
         ? 'Password is too weak'
         : errorCode === 'auth/invalid-email'
         ? 'Invalid email address'
+        : errorCode === 'auth/network-request-failed'
+        ? 'Network error. Please check your internet connection and try again.'
         : errorMessage || 'Sign up failed';
       setError(msg);
     } finally {
@@ -82,8 +84,12 @@ export default function SignUpScreen() {
     try {
       await signInWithGoogle();
     } catch (err: unknown) {
+      const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : '';
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage || 'Google sign up failed');
+      const msg = errorCode === 'auth/network-request-failed'
+        ? 'Network error. Please check your internet connection and try again.'
+        : errorMessage || 'Google sign up failed';
+      setError(msg);
     } finally {
       setGoogleLoading(false);
     }

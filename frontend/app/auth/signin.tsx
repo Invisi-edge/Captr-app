@@ -52,6 +52,8 @@ export default function SignInScreen() {
         ? 'Invalid email or password'
         : firebaseErr.code === 'auth/too-many-requests'
         ? 'Too many attempts. Please try again later.'
+        : firebaseErr.code === 'auth/network-request-failed'
+        ? 'Network error. Please check your internet connection and try again.'
         : firebaseErr.message || 'Sign in failed';
       setError(msg);
     } finally {
@@ -65,8 +67,12 @@ export default function SignInScreen() {
     try {
       await signInWithGoogle();
     } catch (err: unknown) {
+      const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : '';
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage || 'Google sign in failed');
+      const msg = errorCode === 'auth/network-request-failed'
+        ? 'Network error. Please check your internet connection and try again.'
+        : errorMessage || 'Google sign in failed';
+      setError(msg);
     } finally {
       setGoogleLoading(false);
     }
